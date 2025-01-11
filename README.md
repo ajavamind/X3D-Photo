@@ -20,6 +20,8 @@ Pressing left eye photo shows the previous photo in the list, and pressing the r
 
 The app stores transferred photos to the default Pictures/X3D album. This can be changed by pressing the "Save Folder" menu button and select a new folder.
 
-"Reset Server" menu button starts a search for a Simple HTTP Server Plus server on a different Beam Pro device. Only one can be connected to the network at a time.
+"Reset Server" menu button starts a search for a Simple HTTP Server Plus server on a different Beam Pro device. Only one can be connected to the network at a time or run only one server at a time.
+
+I use the LeiaPlayer on the Lume Pad 2 to view the transferred files in 3D. The X3D Photo Viewer runs in the background.
 
 
