@@ -9,3 +9,7 @@ The app automatically searches for the photo server on a local WiFi network wher
 The configuration of the Simple HTTP Server Plus app as it appears from its configuration screen:
 
 ![Configuration Screen](images/configScreenshot.png)
+
+![X3D Viewer and Transfer Screenshot](X3D_ViewerScreenshot.jpg)
+
+The app stores transferred photos to the default Pictures/X3D album. This can be changed by pressing the "Save Folder" menu button and select the new folder.
