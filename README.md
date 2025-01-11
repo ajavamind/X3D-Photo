@@ -10,6 +10,6 @@ The configuration of the Simple HTTP Server Plus app as it appears from its conf
 
 ![Configuration Screen](images/configScreenshot.png)
 
-![X3D Viewer and Transfer Screenshot](X3D_ViewerScreenshot.jpg)
+![X3D Viewer and Transfer Screenshot](images/X3D_ViewerScreenshot.jpg)
 
 The app stores transferred photos to the default Pictures/X3D album. This can be changed by pressing the "Save Folder" menu button and select the new folder.
