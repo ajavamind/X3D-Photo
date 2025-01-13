@@ -61,10 +61,10 @@ int keyUpdate() {
       writeSavedHost(configFile, "0.0.0.0");
       host = readSavedHost(configFile);
       hostlsb = 0;
-      stopThread = true;
+      searchThread = true;
       delay(500);
       foundUrl = null;
-      stopThread = false;
+      searchThread = false;
       thread("searchForServer");
     break;
   case IGui.KEYCODE_B: // show first photo
@@ -84,7 +84,7 @@ int keyUpdate() {
   case IGui.KEYCODE_F:  // show next photo
     currentFileIndex++;
     if (currentFileIndex >= fileList.size()) {
-      //currentFileIndex--;
+      currentFileIndex--;
       first = true;
     }
     done = false;

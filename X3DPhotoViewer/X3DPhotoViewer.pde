@@ -55,17 +55,20 @@ import android.view.WindowInsetsController;
 
 boolean DEBUG = true;
 String title="X3D Photo Viewer";
-String version = "1.03";
+String version = "1.04";
 String credits = "Andy Modla";
 
 String host = "127.0.0.1";
 String searchHost = "0.0.0.0";
 volatile int hostlsb = 0;
-volatile boolean stopThread = false;
-String baseUrl = "http://192.168.1.101";  // default example
+volatile boolean searchThread = false;
+volatile boolean transferThread = false;
+String baseUrl = null;
 String outputFolderPath = "";
 String configFile = "X3DPhotoViewer.txt";
 volatile boolean downloadStarted = false;
+static final int NEXT_GET_LIST = 5*30; // 5 seconds at 30 frames per second Processing draw loop
+int countDownNextGetList = NEXT_GET_LIST; 
 JSONArray fileList;
 int currentFileIndex = 0;
 volatile PImage currentImage;
@@ -90,6 +93,10 @@ void settings() {
   //fullScreen();
   size(1920, 1080);
 }
+
+//void stop() {
+//  transferThread = false;
+//}
 
 void setup() {
   background(200);
@@ -128,6 +135,7 @@ void setup() {
 
   // find server IP address
   thread("searchForServer");
+  thread("photoTransferThread");
 } // setup()
 
 void hideSystemUI() {
@@ -175,6 +183,10 @@ void writeSavedHost(String filename, String url) {
   saveStrings(filename, lines);
 }
 
+/**
+ * Search for HTTP photo server on the local WiFi network
+ * This method runs on a thread, called using thread("searchForServer");
+ */
 void searchForServer() {
   // Get the local IP address during output folder selection
   if (DEBUG) println("Thread searchForServer()");
@@ -185,9 +197,9 @@ void searchForServer() {
   if (hostlsb != 0) {
     found = scanNetwork(localIp, port, hostlsb, hostlsb, timeout);  // inclusive ip range for port
   }
-  if (found == null && !stopThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
-  if (found == null && !stopThread) found = scanNetwork(localIp, port, 100, 199, timeout);  // inclusive port range
-  if (found == null && !stopThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
+  if (found == null && !searchThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
+  if (found == null && !searchThread) found = scanNetwork(localIp, port, 100, 199, timeout);  // inclusive port range
+  if (found == null && !searchThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
   foundUrl = found;
   writeSavedHost(configFile, foundUrl);
   if (DEBUG) println("Done Server search Found: "+foundUrl);
@@ -222,6 +234,13 @@ void draw() {
 
   // process key and mouse inputs on this main sketch loop
   lastKeyCode = keyUpdate();
+  
+  //countDownNextGetList--;
+  //if (lastKeyCode == 0 && countDownNextGetList <= 0) {
+  //  lastKeyCode = IGui.KEYCODE_C; // Get List periodically
+  //  countDownNextGetList = NEXT_GET_LIST;
+  //}
+    
 } // draw()
 
 void drawPhotoViewer() {
@@ -360,115 +379,6 @@ void show3DText(String message, int row) {
   textSize(IGui.FONT_SIZE);
   text(message, 0, height- (row)*IGui.FONT_SIZE, width/2, IGui.FONT_SIZE);
   text(message, -10 +width/2, height- (row)*IGui.FONT_SIZE, width/2, IGui.FONT_SIZE);
-}
-
-void drawPhotoTransfer() {
-  if (outputFolderPath.length()> 20)
-    text("Image Save Folder: "+ outputFolderPath.substring(20), 20, 6*IGui.FONT_SIZE);
-  else
-    text("Image Save Folder: ", 20, 6*IGui.FONT_SIZE);
-
-  String header = title + " - Version " + version + " - " + credits;
-  if (!downloadStarted) {
-    text(header, 20, IGui.FONT_SIZE/2, width, IGui.FONT_SIZE);
-  }
-
-  if (downloadStarted && !done) {
-    if (fileList == null) fileList = retrievePhotoList();
-    if (fileList != null && currentFileIndex < fileList.size()) {
-      JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
-      fileName = fileObject.getString("name");
-      if (DEBUG) println("fileName="+fileName);
-      //  if (fileName.endsWith(".jpg") && (!fileName.startsWith(".trash"))) {
-      //    valid = true;
-      //  } else {
-      //    currentFileIndex++;
-      //    if (currentFileIndex >= fileList.size()) {
-      //      return;
-      //    }
-      //  }
-      //}
-      String fileUrl = baseUrl + "/" + fileName;
-      String outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
-      String outFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_2x1.jpg";
-      if (!fileExists(outputFolderPath + File.separator + outFileName)) {
-        try {
-          saveImageFromUrl(fileUrl, outputFolderPath + File.separator +outFileName);
-          if (DEBUG) println("Image downloaded and saved as " + outFileName);
-        }
-        catch (IOException e) {
-          e.printStackTrace();
-        }
-      } else {
-        if (DEBUG) println("Skipping existing file: " + outFileName);
-      }
-      if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
-        currentImage = loadImage(fileUrl);
-        if (DEBUG) println("loading "+fileUrl);
-      } else {
-        if (DEBUG) println("Skipping existing file: " + fileName);
-        currentFileIndex++;
-        currentImage = null;
-        return;
-      }
-
-      if (currentImage != null) {
-        float ar = (float)currentImage.width / (float) currentImage.height;
-        boolean update = false;
-        if (ar >= 2.0) {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
-          update = true;
-        }
-        if (DEBUG) println("outputFileName="+outputFileName);
-        String outputPath = outputFolderPath + File.separator + outputFileName;
-        String cardOutputPath = outputFolderPath + File.separator + fileName.substring(0, fileName.lastIndexOf('.')) + "_c"+str(parallax)+"_2x1.jpg";
-        // save original image
-        if (DEBUG) println("not saved outputFilePath="+outputFolderPath + File.separator + fileName);
-        text("Not 3D Image", width/2, 2*height/3);
-        //currentImage.save(outputFolderPath + File.separator + fileName);
-        // modify parallax from infinity background
-        if (update) {
-          currentImage = updateParallax(currentImage, parallax);
-          // save parallax adjusted image
-          if (DEBUG) println("saved outputFilePath="+outputPath);
-          currentImage.save(outputPath);
-          //PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, printPxWidth, printPxHeight);
-          PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, int((((float)currentImage.height)*printAspectRatio)), currentImage.height);
-          card.save(cardOutputPath);
-        } else {
-          if (DEBUG) println("Skipping existing file: "+outputFileName);
-        }
-        currentFileIndex++;
-        fill(0, 0, 255);
-        text("Downloading " + str(currentFileIndex) + " of " + str(fileList.size()), width/2, 9*IGui.FONT_SIZE);
-      }
-    } else {
-      done = true;
-      if (DEBUG) println("Done Photo Transfer............");
-      downloadStarted = false;
-    }
-  }
-
-  if (currentImage != null) {
-    float ar = (float) currentImage.width / (float) currentImage.height;
-    image(currentImage, 0, height/2, ar*(height/2), height/2);
-    //image(currentImage, 0, height-(float)width/ar, width , (float)width/ar);
-  }
-
-  if (started && done) {
-    fill(0);
-    textSize(IGui.FONT_SIZE);
-    if (outputFolderPath.length()> 20) {
-      text("Done Saving in Directory: " + outputFolderPath.substring(20), 20, height/3);
-      text("Last Filename: "+fileName, 20, height/3 + 2*IGui.FONT_SIZE);
-    }
-  }
-
-  if (foundUrl == null) {
-    showText("No HTTP Photo Server found", 3);
-  } else {
-    showText("Transfering Photos from http://"+foundUrl, 3);  // set full url
-  }
 }
 
 /**
@@ -634,23 +544,6 @@ PImage cropFor3DMaskPrint(PImage src, float printAspectRatio, int printPxWidth, 
   return img;
 }
 
-//void saveImageFromUrl(String imageUrl, String destinationFile) throws IOException {
-//  if (DEBUG) println("saveImageFromUrl url="+imageUrl + " destination="+destinationFile);
-//  URL url = new URL(imageUrl);
-//  InputStream inputStream = url.openStream();
-//  OutputStream outputStream = new FileOutputStream(destinationFile);
-
-//  byte[] buffer = new byte[2048];
-//  int bytesRead;
-
-//  while ((bytesRead = inputStream.read(buffer)) != -1) {
-//    outputStream.write(buffer, 0, bytesRead);
-//  }
-
-//  inputStream.close();
-//  outputStream.close();
-//}
-
 void saveImageFromUrl(String imageUrl, String outputFile) throws IOException {
   if (DEBUG) println("saveImageFromUrl url="+imageUrl + " destination="+outputFile);
 
@@ -803,7 +696,7 @@ String scanNetwork(String localIp, int port, int low, int high, int timeout) {
       if (isPortOpen(inetAddress, port, timeout)) {
         String hostName = inetAddress.getHostName();
         if (DEBUG) println("Host: " + hostName + " port " + port + " IP: " + searchHost);
-        stopThread = true;
+        searchThread = true;
         return searchHost;
       }
     }
