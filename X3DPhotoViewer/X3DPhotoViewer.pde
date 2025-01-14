@@ -1,25 +1,13 @@
 // java sketch that downloads image files from a web server using a base url,
-// for example: http://[xxx.xxx.xxx.xxx]:8333 default WiFi network for the device running this app
-// The sketch has a text entry line for changing the base url.
-// The sketch has a text entry line for the output folder path where to store the downloaded images.
-// The sketch has a button that starts the download and image processing.
-// These GUI items are shown in draw()
-// Use the url: baseUrl/api/file/list?path=/ to load a json file that lists the files to download.
-// The json file is a json array as in this example:
-// [{"name":"SV_20240904_152557.jpg","length":"3.5 MB","modified":1725477958,"directory":false}]
-// Use the processing json array and object functions to work with json data.
+// looks for photo server example: http://[xxx.xxx.xxx.xxx]:8333 default WiFi network for the device running this app
 // The expected format of the images is a stereoscopic side by side left/right images in the file.
 // call a function named updateParallax that converts the sbs Pimage into left/right PImages and
 // change the vertical offset and horizontal parallax offset and returning the cropped converted sbs image.
-// do not code this function just call it.
 // Add a suffix "_2x1" to the original image filename, for example, image.jpg becomes image_2x1.jpg
 // save the updated image with the filename suffix addition in the output folder.
 // Repeat for all files parsed from the json file array list, one for each draw() cycle.
-// The image files are downloaded from the server as in this example url:
-// baseUrl/SV_20240904_152557.jpg
-// use loadImage processing function to download.
+// uses loadImage processing function to download.
 // show the images in draw while reading from the server
-// When finished write "Done" + output folder path and wait for user to exit.
 //
 // This sketch includes a text entry for the base URL, a text entry for the output folder path,
 // and a button to start the download and image processing. It uses Processing's JSON functions
@@ -53,9 +41,9 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 
-boolean DEBUG = true;
+static final boolean  DEBUG = true;
 String title="X3D Photo Viewer";
-String version = "1.04";
+String version = "1.05";
 String credits = "Andy Modla";
 
 String host = "127.0.0.1";
@@ -67,8 +55,6 @@ String baseUrl = null;
 String outputFolderPath = "";
 String configFile = "X3DPhotoViewer.txt";
 volatile boolean downloadStarted = false;
-static final int NEXT_GET_LIST = 5*30; // 5 seconds at 30 frames per second Processing draw loop
-int countDownNextGetList = NEXT_GET_LIST; 
 JSONArray fileList;
 int currentFileIndex = 0;
 volatile PImage currentImage;
@@ -91,7 +77,7 @@ boolean getFolder = false;
 
 void settings() {
   //fullScreen();
-  size(1920, 1080);
+  size(1920, 1080); // size chosen to free view SBS image
 }
 
 //void stop() {
@@ -135,6 +121,7 @@ void setup() {
 
   // find server IP address
   thread("searchForServer");
+  // start transfering all photos from the server
   thread("photoTransferThread");
 } // setup()
 
@@ -222,7 +209,6 @@ void draw() {
     background(200);
     String header = title + " - Version " + version + " - " + credits;
     text(header, 0, IGui.FONT_SIZE/3, width, IGui.FONT_SIZE);
-    //drawPhotoTransfer();
     drawPhotoViewer();
     if (foundUrl == null) {
       showText("Checking For Server At: " + searchHost, 1);
@@ -234,13 +220,6 @@ void draw() {
 
   // process key and mouse inputs on this main sketch loop
   lastKeyCode = keyUpdate();
-  
-  //countDownNextGetList--;
-  //if (lastKeyCode == 0 && countDownNextGetList <= 0) {
-  //  lastKeyCode = IGui.KEYCODE_C; // Get List periodically
-  //  countDownNextGetList = NEXT_GET_LIST;
-  //}
-    
 } // draw()
 
 void drawPhotoViewer() {
@@ -254,21 +233,16 @@ void drawPhotoViewer() {
       JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
-      //  if ((fileName.toLowerCase().endsWith(".jpg") ||
-      //    fileName.toLowerCase().endsWith(".png") ||
-      //    fileName.toLowerCase().endsWith(".jps")
-      //    ) && (!fileName.startsWith(".trash"))) {
-      //    valid = true;
-      //  } else {
-      //    fileList.remove(currentFileIndex);
-      //    currentFileIndex--;
-      //    if (currentFileIndex  < 0) currentFileIndex = 0;
-      //    if (currentFileIndex >= fileList.size()) {
-      //      return;
-      //    }
-      //    return;
-      //  }
-      //}
+      if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png"))
+        && (!fileName.toLowerCase().startsWith(".trash"))) {
+      } else {
+        fileList.remove(currentFileIndex);
+        currentFileIndex--;
+        if (currentFileIndex  < 0) currentFileIndex = 0;
+        if (currentFileIndex >= fileList.size()) {
+          return;
+        }
+      }
       String fileUrl = baseUrl + "/" + fileName;
       String outputFileName = "";
       boolean filePresent = false;
@@ -384,7 +358,7 @@ void show3DText(String message, int row) {
 /**
  * Retrieve Photo list JSON file from HTTP photo server
  * Assumes Android app "Simple HTTP Server PLUS" is running on an Android camera device connected to same network as this app.
- * 
+ *
  */
 JSONArray retrievePhotoList() {
   int before = 0;

@@ -50,10 +50,8 @@ void photoTransfer() {
       JSONObject fileObject = fileList.getJSONObject(fileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
-      if ((fileName.toLowerCase().endsWith(".jpg") ||
-        fileName.toLowerCase().endsWith(".png") ||
-        fileName.toLowerCase().endsWith(".jps")
-        ) && (!fileName.startsWith(".trash"))) {
+      if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png")) &&
+        (!fileName.toLowerCase().startsWith(".trash"))) {
         String fileUrl = baseUrl + "/" + fileName;
         String outputFileName = "";
         if (parallax > 0) {
@@ -82,10 +80,14 @@ void photoTransfer() {
               img = updateParallax(img, parallax);
               // save parallax adjusted image
               img.save(outputPath);
-              if (DEBUG) println("saved outputFilePath="+outputPath);
+              if (DEBUG) println("saved Image outputFilePath="+outputPath);
             }
           }
         }
+      } else { // ignore image and remove from fileList
+        fileList.remove(fileIndex);
+        fileIndex--;
+        if (fileIndex  < 0) fileIndex = 0;
       }
     } // for
   }
