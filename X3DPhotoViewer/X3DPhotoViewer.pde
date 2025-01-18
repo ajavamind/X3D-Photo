@@ -43,7 +43,7 @@ import android.view.WindowInsetsController;
 
 static final boolean  DEBUG = true;
 String title="X3D Photo Viewer";
-String version = "1.05";
+String version = "1.06";
 String credits = "Andy Modla";
 
 String host = "127.0.0.1";
@@ -55,7 +55,7 @@ String baseUrl = null;
 String outputFolderPath = "";
 String configFile = "X3DPhotoViewer.txt";
 volatile boolean downloadStarted = false;
-JSONArray fileList;
+volatile JSONArray fileList;
 int currentFileIndex = 0;
 volatile PImage currentImage;
 boolean done = false;
