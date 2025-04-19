@@ -30,27 +30,15 @@ import java.util.List;
 import java.io.*;
 import java.net.*;
 
-// ANDROID imports
-import android.content.Context;
-import android.net.wifi.WifiManager;
-import android.net.wifi.WifiInfo;
-import android.view.inputmethod.InputMethodManager;
-import android.app.Activity;
-import android.os.Build;
-import android.view.View;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
-
-static final boolean  DEBUG = true;
+static final boolean  DEBUG = false;
 String title="X3D Photo Viewer";
-String version = "1.06";
+String version = "1.07";
 String credits = "Andy Modla";
 
 String host = "127.0.0.1";
 String searchHost = "0.0.0.0";
 volatile int hostlsb = 0;
 volatile boolean searchThread = false;
-volatile boolean transferThread = false;
 String baseUrl = null;
 String outputFolderPath = "";
 String configFile = "X3DPhotoViewer.txt";
@@ -65,8 +53,22 @@ int port = 8333;  // expected port for HTTP image server
 int timeout = 500; // 0.5 second
 boolean ready = false;
 volatile String foundUrl = null;
+
 String fileName="";
-int parallax = 237;  // 0; // standard adjustment for Xreal Beam Pro stereo window
+final static String STEREO_PREFIX = "SV_";
+final static String MONO_PREFIX = "IMG_";
+final static String STEREO_SUFFIX = "_2x1";
+final static String MONO_SUFFIX = "";
+final static String ANAGLYPH_SUFFIX = "_ana";
+final static String JPG_FILETYPE = ".jpg";
+final static String PNG_FILETYPE = ".png";
+String filePrefix = STEREO_PREFIX;
+String fileSuffix = STEREO_SUFFIX;
+String fileType   = JPG_FILETYPE;
+
+static final int PARALLAX = 237; // standard adjustment for Xreal Beam Pro stereo window
+int parallax = PARALLAX;  // 0; // standard adjustment
+
 float printAspectRatio = 6.0/4.0;  // default aspect ratio 6x4 inch print landscape orientation
 int printPxWidth = 1800;
 int printPxHeight = 1200;
@@ -77,23 +79,17 @@ boolean getFolder = false;
 
 void settings() {
   //fullScreen();
-  size(1920, 1080); // size chosen to free view SBS image
+  size(1920, 1080); // size chosen to free view SBS image on a phone
 }
-
-//void stop() {
-//  transferThread = false;
-//}
 
 void setup() {
   background(200);
   fill(IGui.black); // black text and graphics
-  frameRate(30);
+  frameRate(60);
   orientation(LANDSCAPE);
 
   // Clear the cache of any files from previous run
   //clearCache();
-  outputFolderPath = File.separator + "storage" + File.separator + "emulated" + File.separator + "0"
-    + File.separator + "Pictures" + File.separator + "X3D";
   openFileSystem();
   //writeSavedHost(configFile, "0.0.0.0");  // for debug only, reset saved server ip address
 
@@ -111,39 +107,14 @@ void setup() {
   urlSearch = "Searching for HTTP Photo Server";
 
   // Ensure we are on the main thread
-  getActivity().runOnUiThread(new Runnable() {
-    @Override
-      public void run() {
-      hideSystemUI();
-    }
-  }
-  );
+  runOnUIThread();
 
   // find server IP address
   thread("searchForServer");
-  // start transfering all photos from the server
+
+  // start transfering all photos from the server when IP address found
   thread("photoTransferThread");
 } // setup()
-
-void hideSystemUI() {
-  Activity activity = getActivity();
-  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-    WindowInsetsController insetsController = activity.getWindow().getInsetsController();
-    if (insetsController != null) {
-      insetsController.hide(WindowInsets.Type.systemBars());
-      insetsController.setSystemBarsBehavior(
-        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-    }
-  } else {
-    activity.getWindow().getDecorView().setSystemUiVisibility(
-      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-      | View.SYSTEM_UI_FLAG_FULLSCREEN);
-  }
-}
 
 String readSavedHost(String filename) {
   String result = "0.0.0.0";
@@ -184,8 +155,8 @@ void searchForServer() {
   if (hostlsb != 0) {
     found = scanNetwork(localIp, port, hostlsb, hostlsb, timeout);  // inclusive ip range for port
   }
-  if (found == null && !searchThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
   if (found == null && !searchThread) found = scanNetwork(localIp, port, 100, 199, timeout);  // inclusive port range
+  if (found == null && !searchThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
   if (found == null && !searchThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
   foundUrl = found;
   writeSavedHost(configFile, foundUrl);
@@ -233,7 +204,7 @@ void drawPhotoViewer() {
       JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
-      if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png"))
+      if (fileName.toLowerCase().endsWith(fileType) && fileName.startsWith(filePrefix)
         && (!fileName.toLowerCase().startsWith(".trash"))) {
       } else {
         fileList.remove(currentFileIndex);
@@ -247,9 +218,9 @@ void drawPhotoViewer() {
       String outputFileName = "";
       boolean filePresent = false;
       if (parallax > 0) {
-        outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+        outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
       } else {
-        outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_2x1.jpg";
+        outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + fileSuffix + fileType;
       }
       if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
         //try {
@@ -297,14 +268,14 @@ void drawPhotoViewer() {
         outputFileName = fileName.substring(0);
         boolean update = false;
         if (ar >= 2.0) {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+ fileSuffix + fileType;
           update = true;
         }
         String outputPath = outputFolderPath + File.separator + outputFileName;
         if (DEBUG) println("outputFileName="+outputFileName);
         if (DEBUG) println("outputPath="+outputPath);
         if (DEBUG) println("fileName="+fileName);
-        String cardOutputPath = outputFolderPath + File.separator + fileName.substring(0, fileName.lastIndexOf('.')) + "_c"+str(parallax)+"_2x1.jpg";
+        String cardOutputPath = outputFolderPath + File.separator + fileName.substring(0, fileName.lastIndexOf('.')) + "_c"+str(parallax) + fileSuffix + fileType;
         // save original image
         //if (DEBUG) println("not saved outputFilePath="+outputFolderPath + File.separator + fileName);
         //text("Not 3D Image", width/2, 2*height/3);
@@ -383,7 +354,7 @@ JSONArray retrievePhotoList() {
     if ((fileName.toLowerCase().endsWith(".jpg") ||
       fileName.toLowerCase().endsWith(".png") ||
       fileName.toLowerCase().endsWith(".jps")
-      ) && (!fileName.startsWith(".trash"))) {
+      ) && (!fileName.startsWith(".trash")) && fileName.startsWith(filePrefix)) {
     } else {
       if (DEBUG) println("removed fileName="+fileName);
       fileList.remove(i);
@@ -541,66 +512,6 @@ boolean fileExists(String fileNamePath) {
   return present;
 }
 
-// ANDROID
-
-boolean grantedRead = false;
-boolean grantedWrite = false;
-
-SelectLibrary files;
-
-void openFileSystem() {
-  requestPermissions();
-  files = new SelectLibrary(this);
-}
-
-//void showSoftKeyboard() {
-//  Activity activity = (Activity) this.getActivity();
-//  activity.runOnUiThread(new Runnable() {
-//    public void run() {
-//      // Get the InputMethodManager
-//      InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-
-//      // Show the soft keyboard
-//      imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-//    }
-//  }
-//  );
-//}
-
-public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-  if (DEBUG) println("onRequestPermissionsResult "+ requestCode + " " + grantResults + " ");
-  for (int i=0; i<permissions.length; i++) {
-    if (DEBUG) println(permissions[i]);
-  }
-}
-
-void requestPermissions() {
-  if (!hasPermission("android.permission.READ_EXTERNAL_STORAGE")) {
-    requestPermission("android.permission.READ_EXTERNAL_STORAGE", "handleRead");
-  }
-  if (!hasPermission("android.permission.WRITE_EXTERNAL_STORAGE")) {
-    requestPermission("android.permission.WRITE_EXTERNAL_STORAGE", "handleWrite");
-  }
-}
-
-void handleRead(boolean granted) {
-  if (granted) {
-    grantedRead = granted;
-    if (DEBUG) println("Granted read permissions.");
-  } else {
-    if (DEBUG) println("Does not have permission to read external storage.");
-  }
-}
-
-void handleWrite(boolean granted) {
-  if (granted) {
-    grantedWrite = granted;
-    if (DEBUG) println("Granted write permissions.");
-  } else {
-    if (DEBUG) println("Does not have permission to write external storage.");
-  }
-}
-
 void selectSaveFolder() {
   files.selectFolder("Select Save Folder", "folderSelected");
 }
@@ -691,28 +602,3 @@ boolean isPortOpen(InetAddress inetAddress, int port, int timeout) {
     return false;
   }
 }
-
-//void clearCache() {
-//  // Get the cache directory
-//  File cacheDir = getCacheDir();
-
-//  // Check if the cache directory exists
-//  if (cacheDir != null && cacheDir.isDirectory()) {
-//    // Get all files in the cache directory
-//    File[] files = cacheDir.listFiles();
-
-//    // Iterate through the files and delete them
-//    for (File file : files) {
-//      file.delete();
-//    }
-
-//    if (DEBUG) println("Cache cleared!");
-//  } else {
-//    if (DEBUG) println("Cache directory not found.");
-//  }
-//}
-//// Helper method to get the cache directory
-//File getCacheDir() {
-//  Context context = getActivity().getApplicationContext();
-//  return context.getCacheDir();
-//}

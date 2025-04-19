@@ -1,0 +1,16 @@
+// WINDOWS Version
+// change file type of Android.pde.txt to Android.pde to build for Android
+// change file type of Windows.pde to Windows.pde.txt
+
+SelectLibrary files;
+
+void openFileSystem() {
+  outputFolderPath = File.separator + "storage" + File.separator + "Pictures" + File.separator + "X3D";
+
+  files = new SelectLibrary(this);
+}
+
+// ensure we run on main UI thread
+void runOnUIThread() {
+  // no operation for windows
+}

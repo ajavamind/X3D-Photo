@@ -1,0 +1,4 @@
+192.168.1.101
+8333
+\storage\Pictures\X3D
+

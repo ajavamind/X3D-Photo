@@ -3,6 +3,11 @@ import java.util.TimerTask;
 
 Timer wakeupTimer;
 boolean wakeup = false;
+volatile boolean transferThread = false;
+
+//void stop() {
+//  transferThread = false;
+//}
 
 void startWakeupTimer() {
   wakeupTimer = new Timer();
@@ -50,14 +55,15 @@ void photoTransfer() {
       JSONObject fileObject = fileList.getJSONObject(fileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
-      if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png")) &&
+      //if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png")) &&
+      if (fileName.toLowerCase().endsWith(fileType) || (fileName.startsWith(filePrefix)) &&
         (!fileName.toLowerCase().startsWith(".trash"))) {
         String fileUrl = baseUrl + "/" + fileName;
         String outputFileName = "";
         if (parallax > 0) {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
         } else {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_2x1.jpg";
+          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + fileSuffix + fileType;
         }
         if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
           img = loadImage(fileUrl);
@@ -67,7 +73,7 @@ void photoTransfer() {
             outputFileName = fileName.substring(0);
             boolean update = false;
             if (ar >= 2.0) {
-              outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+              outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
               update = true;
             }
             String outputPath = outputFolderPath + File.separator + outputFileName;
@@ -94,7 +100,7 @@ void photoTransfer() {
 }
 
 // ------------------------------------------------------------------
-// reference not used
+// NOT USED this is for archive reference only
 void drawPhotoTransfer() {
   if (outputFolderPath.length()> 20)
     text("Image Save Folder: "+ outputFolderPath.substring(20), 20, 6*IGui.FONT_SIZE);
