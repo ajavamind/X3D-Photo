@@ -1,7 +1,6 @@
 // WINDOWS Version
-// change file type of Android.pde.txt to Android.pde to build for Android
-// change file type of Windows.pde to Windows.pde.txt
 
+/** Comment out ----------------------------------------------
 SelectLibrary files;
 
 void openFileSystem() {
@@ -14,3 +13,5 @@ void openFileSystem() {
 void runOnUIThread() {
   // no operation for windows
 }
+
+-----------------------------------------------------------*/

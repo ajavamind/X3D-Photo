@@ -1,7 +1,4 @@
-// change file type of Android.pde.txt to Android.pde to build for Android 
-// change file type of Windows.pde to Windows.pde.txt
-
-// ANDROID imports
+// ANDROID
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
@@ -13,19 +10,19 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 
-// ANDROID
-
 boolean grantedRead = false;
 boolean grantedWrite = false;
 
 SelectLibrary files;
 
 void openFileSystem() {
+  // Clear the cache of any files from previous run
+  //clearCache();
   outputFolderPath = File.separator + "storage" + File.separator + "emulated" + File.separator + "0"
     + File.separator + "Pictures" + File.separator + "X3D";
   requestPermissions();
   files = new SelectLibrary(this);
-  // TODO check for X3D exists, otherwise make directory
+  // TODO check for outputFolderPath X3D exists, otherwise make directory
 }
 
 //void showSoftKeyboard() {

@@ -15,7 +15,7 @@ void startWakeupTimer() {
   TimerTask task = new TimerTask() {
     public void run() {
       wakeup = true;
-      println("wakeup");
+      //println("wakeup");
       //wakeupTimer.cancel();
     }
   };
