@@ -1,4 +1,4 @@
-// WINDOWS Version
+// WINDOWS Version of this app
 
 /** Comment out ----------------------------------------------
 SelectLibrary files;

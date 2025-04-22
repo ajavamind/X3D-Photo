@@ -1,3 +1,5 @@
+// Automatic background transfer of photos from XREAL Beam Pro camera
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -48,6 +50,7 @@ void photoTransfer() {
   PImage img;
   JSONArray fileList;
   String fileName;
+  int options = gui.dropDownList.getOptionsValue();
   if (DEBUG) println("PhotoTransfer()");
   fileList = retrievePhotoList();
   if (fileList != null && fileList.size() > 0) {
@@ -55,7 +58,7 @@ void photoTransfer() {
       JSONObject fileObject = fileList.getJSONObject(fileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
-      //if ((fileName.toLowerCase().endsWith(".jpg") || fileName.toLowerCase().endsWith(".png")) &&
+
       if (fileName.toLowerCase().endsWith(fileType) || (fileName.startsWith(filePrefix)) &&
         (!fileName.toLowerCase().startsWith(".trash"))) {
         String fileUrl = baseUrl + "/" + fileName;
@@ -100,7 +103,7 @@ void photoTransfer() {
 }
 
 // ------------------------------------------------------------------
-// NOT USED this is for archive reference only
+// NOT USED - this is for archive reference only
 void drawPhotoTransfer() {
   if (outputFolderPath.length()> 20)
     text("Image Save Folder: "+ outputFolderPath.substring(20), 20, 6*IGui.FONT_SIZE);

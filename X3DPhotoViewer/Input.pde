@@ -16,9 +16,9 @@ void mousePressed() {
 void mousePressedAdvance() {
   if (fileList == null || fileList.size() == 0) return;
   if (mouseX > width/2 && mouseY > 3*IGui.FONT_SIZE) {
-    lastKeyCode = IGui.KEYCODE_F;
-  } else if (mouseX <width/2 && mouseY > 3*IGui.FONT_SIZE) {
     lastKeyCode = IGui.KEYCODE_G;
+  } else if (mouseX <width/2 && mouseY > 3*IGui.FONT_SIZE) {
+    lastKeyCode = IGui.KEYCODE_H;
   }
   //if (DEBUG) println("mousePressed currentFileIndex="+currentFileIndex);
 }
@@ -31,7 +31,7 @@ void keyReleased() {
 }
 
 void keyPressed() {
-  if (DEBUG) println("key="+key + " keydecimal=" + int(key) + " keyCode="+keyCode);
+  //if (DEBUG) println("key="+key + " keydecimal=" + int(key) + " keyCode="+keyCode);
   //if (DEBUG) Log.d(TAG, "key=" + key + " keyCode=" + keyCode);  // Android
   if (key==ESC) {
     key = 0;
@@ -58,14 +58,14 @@ int keyUpdate() {
   case IGui.KEYCODE_BACK:
     break;
   case IGui.KEYCODE_A: // reset HTTP server search
-      writeSavedHost(configFile, "0.0.0.0");
-      host = readSavedHost(configFile);
-      hostlsb = 0;
-      searchThread = true;
-      delay(500);
-      foundUrl = null;
-      searchThread = false;
-      thread("searchForServer");
+    writeSavedHost(configFile, "0.0.0.0");
+    host = readSavedHost(configFile);
+    hostlsb = 0;
+    searchThread = true;
+    delay(500);
+    foundUrl = null;
+    searchThread = false;
+    thread("searchForServer");
     break;
   case IGui.KEYCODE_B: // show first photo
     currentFileIndex = 0;
@@ -81,22 +81,25 @@ int keyUpdate() {
   case IGui.KEYCODE_E: // select save folder for photos
     selectSaveFolder();
     break;
-  case IGui.KEYCODE_F:  // show next photo
+  case IGui.KEYCODE_F:
+    //if (DEBUG) println("KEYCODE_F");
+    if (!gui.dropDownList.visible) gui.dropDownList.show();
+    else gui.dropDownList.hide();
+    break;
+  case IGui.KEYCODE_G:  // show next photo
     currentFileIndex++;
     if (currentFileIndex >= fileList.size()) {
       currentFileIndex--;
       first = true;
     }
     done = false;
-
     break;
-  case IGui.KEYCODE_G:// show previous photo
+  case IGui.KEYCODE_H:// show previous photo
     currentFileIndex--;
     if (currentFileIndex < 0 || currentFileIndex >= fileList.size()) {
       currentFileIndex = fileList.size() -1;
     }
     done = false;
-
     break;
   default:
     break;

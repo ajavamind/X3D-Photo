@@ -32,8 +32,8 @@ import java.net.*;
 
 //static final boolean  DEBUG = false;
 static final boolean  DEBUG = true;
-String title="X3D Photo Viewer";
-String version = "1.08";
+String title="X3D Photo Transfer";
+String version = "1.10";
 String credits = "Andy Modla";
 
 String host = "127.0.0.1";
@@ -66,8 +66,8 @@ String filePrefix = STEREO_PREFIX;
 String fileSuffix = STEREO_SUFFIX;
 String fileType   = JPG_FILETYPE;
 
-static final int PARALLAX = 237; // standard adjustment for Xreal Beam Pro stereo window
-int parallax = PARALLAX;  // 0; // standard adjustment
+static final int PARALLAX = 237; // standard parallax adjustment for Xreal Beam Pro stereo window
+int parallax = PARALLAX;  // parallax adjustment
 
 float printAspectRatio = 6.0/4.0;  // default aspect ratio 6x4 inch print landscape orientation
 int printPxWidth = 1800;
@@ -94,7 +94,7 @@ void setup() {
   if (DEBUG) println("Saved host="+host+ " hostlsb="+hostlsb);
 
   initGui();
-  
+
   urlSearch = "Searching for HTTP Photo Server";
 
   // Ensure we are on the main thread
@@ -147,15 +147,18 @@ void draw() {
     getFolder = false;
   } else {
     background(200);
+    textAlign(CENTER, CENTER);
     String header = title + " - Version " + version + " - " + credits;
     text(header, 0, IGui.FONT_SIZE/3, width, IGui.FONT_SIZE);
     drawPhotoViewer();
+
     if (foundUrl == null) {
       showText("Checking For Server At: " + searchHost, 1);
     } else {
       showText("Server Found At: " + foundUrl, 1);
     }
     gui.displayMenuBar();
+    gui.dropDownList.display();
   }
 
   // process key and mouse inputs on this main sketch loop

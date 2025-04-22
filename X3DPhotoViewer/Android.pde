@@ -1,4 +1,4 @@
-// ANDROID
+// ANDROID version of this app
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
