@@ -129,16 +129,27 @@ interface IGui {
   static final String LEFT_RIGHT_ARROW = "\u2194";
 }
 
-// Drop Down List Option items
-String[] items = {"SV_", "_2x1", "Anaglyph", "Card", "_L _R"};  // , "Parallax", "IMG_"};
-static final int OPTION_SV =  1;
+// Drop Down List Input File Name Prefix
+String[] prefixNames = {"SV_", "IMG_", "Other"};
+static final int PREFIX_SV = 1;
+static final int PREFIX_IMG = 2;
+static final int PREFIX_OTHER = 4;
+int[] prefixValues = {PREFIX_SV, PREFIX_IMG, PREFIX_OTHER};
+static final int PREFIX_DEFAULT = PREFIX_SV;
+int prefixValue = PREFIX_DEFAULT;
+
+// Drop Down List Conversion Option items
+String[] itemNames = {"Raw", "_2x1", "Anaglyph", "Card", "_L  _R"};
+// , "Parallax", "IMG_"};
+static final int OPTION_NONE =  1;
 static final int OPTION_2x1 = 2;
 static final int OPTION_ANAGLYPH = 4;
 static final int OPTION_CARD = 8;
 static final int OPTION_L_R = 16;
 //static final int OPTION_PARALLAX = 32;
 //static final int OPTION_IMG = 64;
-int[] itemValues = {OPTION_SV, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L_R};  //, OPTION_PARALLAX, OPTION_IMG};
+int[] itemValues = {OPTION_NONE, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L_R};
+//, OPTION_PARALLAX, OPTION_IMG};
 static final int OPTION_DEFAULT = OPTION_2x1;
 int optionValue = OPTION_DEFAULT;
 
@@ -156,7 +167,8 @@ void initGui() {
 class Gui {
   PApplet base;  // base sketch reference
   MenuBar menuBar;
-  DropDownList dropDownList;
+  DropDownList optionDropDownList;
+  DropDownList prefixDropDownList;
 
   // information zone touch coordinates
   // screen boundaries for click zone use
@@ -192,7 +204,13 @@ class Gui {
     float ddX = gui.menuBar.menuKey[5].x;
     float ddY = gui.menuBar.menuKey[5].y + gui.menuBar.menuKey[5].h + 4;
     float ddW = gui.menuBar.menuKey[5].w;
-    dropDownList = new DropDownList(base, items, itemValues, optionValue, ddX, ddY, ddW, IGui.FONT_SIZE);
+    optionDropDownList = new DropDownList(base, itemNames, itemValues, optionValue, ddX, ddY, ddW, IGui.FONT_SIZE);
+    
+    // Place drop down list below the new menu key
+    ddX = gui.menuBar.menuKey[6].x;
+    ddY = gui.menuBar.menuKey[6].y + gui.menuBar.menuKey[6].h + 4;
+    ddW = gui.menuBar.menuKey[6].w;
+    prefixDropDownList = new DropDownList(base, prefixNames, prefixValues, prefixValue, ddX, ddY, ddW, IGui.FONT_SIZE);
   }
 
   void displayMenuBar() {
@@ -202,9 +220,9 @@ class Gui {
   boolean toggleScanTextKey() {
     toggleScan = !toggleScan;
     if (toggleScan) {
-      menuBar.setScanNetText("Stop Scan");
+      menuBar.setScanNetText("Stop");
     } else {
-      menuBar.setScanNetText("Scan Net");
+      menuBar.setScanNetText("Scan");
     }
     return toggleScan;
   }
@@ -226,10 +244,10 @@ class Gui {
     MenuKey firstPhotoKey;
     MenuKey lastPhotoKey;
     MenuKey saveFolderKey;
-    MenuKey dropDownKey;
-
+    MenuKey optionDropDownKey;
+    MenuKey prefixDropDownKey;
     MenuKey[] menuKey;
-    int numKeys = 6;
+    int numKeys = 7;
 
     float menuBase;
     float inset;
@@ -242,19 +260,21 @@ class Gui {
      */
     public MenuBar(PApplet base) {
       this.base = base;
-      resetServerKey = new MenuKey(base, KEYCODE_A, "Scan Net", FONT_SIZE, black);
-      firstPhotoKey = new MenuKey(base, KEYCODE_B, "Show First", FONT_SIZE, black);
+      resetServerKey = new MenuKey(base, KEYCODE_A, "Scan", FONT_SIZE, black);
+      firstPhotoKey = new MenuKey(base, KEYCODE_B, "First", FONT_SIZE, black);
       refreshListKey = new MenuKey(base, KEYCODE_C, "Start", FONT_SIZE, black);
-      lastPhotoKey = new MenuKey(base, KEYCODE_D, "Show Last", FONT_SIZE, black);
+      lastPhotoKey = new MenuKey(base, KEYCODE_D, "Last", FONT_SIZE, black);
       saveFolderKey = new MenuKey(base, KEYCODE_E, "Folder", FONT_SIZE, black);
-      dropDownKey = new MenuKey(base, KEYCODE_F, "Options", FONT_SIZE, black);
+      optionDropDownKey = new MenuKey(base, KEYCODE_F, "Options", FONT_SIZE, black);
+      prefixDropDownKey = new MenuKey(base, KEYCODE_P, "Prefix", FONT_SIZE, black);
       menuKey = new MenuKey[numKeys];
       menuKey[0] = resetServerKey;
       menuKey[1] = firstPhotoKey;
       menuKey[2] = refreshListKey;
       menuKey[3] = lastPhotoKey;
       menuKey[4] = saveFolderKey;
-      menuKey[5] = dropDownKey;
+      menuKey[5] = optionDropDownKey;
+      menuKey[6] = prefixDropDownKey;
       x = 0;
       iY = base.height/16;
       y = base.height - iY;
@@ -299,7 +319,7 @@ class Gui {
       }
     }
 
-    int mousePressed(int x, int y) {
+    int isPressed(int x, int y) {
       int mkeyCode = 0;
       int mkey = 0;
       //if (DEBUG) println("menubar mouse x="+x + " y="+y + " menuBase="+menuBase);
@@ -316,7 +336,8 @@ class Gui {
           }
         }
         if (mkeyCode == 0) {
-          gui.dropDownList.mousePressed(mouseX, mouseY);
+          if (gui.optionDropDownList.isPressed(x, y) >= 0) {} 
+          else gui.prefixDropDownList.isPressed(x, y);
         }
       }
       return mkeyCode;
@@ -503,7 +524,7 @@ class Gui {
     PApplet base;
     String[] items;
     int[] itemValues;
-    int optionsValue;
+    int itemValue;
     float x, y, w, h;
     boolean visible = false;
     int highlight = -1;
@@ -517,14 +538,14 @@ class Gui {
     /**
      * Constructor
      */
-    DropDownList(PApplet base, String[] items, int[] itemValues, int optionsValue, float x, float y, float w, float fontSize) {
+    DropDownList(PApplet base, String[] items, int[] itemValues, int itemValue, float x, float y, float w, float fontSize) {
       this.base = base;
       this.items = items;
       this.itemValues = itemValues;
-      this.optionsValue = optionsValue;
+      this.itemValue = itemValue;
       this.x = x;
       this.y = y;
-      this.w = w;
+      this.w = w * 1.1;  // slightly wider for text
       this.fontSize = fontSize;
       this.itemHeight = fontSize * 1.2;
       this.h = items.length * itemHeight;
@@ -550,7 +571,7 @@ class Gui {
       for (int i = 0; i < items.length; i++) {
         float iy = y + i * itemHeight;
         int value = itemValues[i];
-        if ((optionsValue & value) != 0) {
+        if ((itemValue & value) != 0) {
           base.fill(lightblue);
           base.rect(x, iy, w, itemHeight);
         }
@@ -563,20 +584,20 @@ class Gui {
 
     // Returns index if selected, -1 otherwise
     // sets option values
-    int mousePressed(int mx, int my) {
+    int isPressed(int mx, int my) {
       if (!visible) return -1;
       if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
         int idx = int((my - y) / itemHeight);
         if (idx >= 0 && idx < items.length) {
-          optionsValue = optionsValue ^ itemValues[idx];
+          itemValue = itemValue ^ itemValues[idx];
           return idx;
         }
       }
       return -1;
     }
 
-    int getOptionsValue() {
-      return optionsValue;
+    int getItemValue() {
+      return itemValue;
     }
   }
 }

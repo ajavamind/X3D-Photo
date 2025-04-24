@@ -8,7 +8,7 @@ volatile int hostlsb = 0;
 volatile boolean searchThread = false;
 
 void startSearch() {
-  host = readSavedHost(configFile);
+  readConfiguration(configFile);  // updates host
   hostlsb = 0;
   //searchThread = false;  // stop previous search thread
   //delay(500);
@@ -43,7 +43,7 @@ void searchForServer() {
   if (found == null && searchThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
   if (found == null) scanCompleted = true;
   foundUrl = found;
-  writeSavedHost(configFile, foundUrl);
+  writeConfiguration(configFile, foundUrl);
   gui.toggleScanTextKey();  // change menu label
   if (DEBUG) println("Done Server search Found: "+foundUrl);
 }

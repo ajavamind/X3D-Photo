@@ -45,6 +45,24 @@ void photoTransferThread() {
   }
 }
 
+// set up options selected for converting stereo photo
+void setupTransferOptions() {
+  int options = 0;
+  options = gui.optionDropDownList.getItemValue();
+  if ((options & OPTION_2x1) != 0) {
+    fileSuffix = "_2x1";
+  } else if ((options & OPTION_NONE) != 0) {
+    fileSuffix = "";
+  }
+  options = gui.prefixDropDownList.getItemValue();
+  if ((options & PREFIX_SV) != 0) {
+    filePrefix = STEREO_PREFIX;
+  } else if ((options & PREFIX_IMG) != 0) {
+    filePrefix = MONO_PREFIX;
+  }
+  println("set options filePrefix="+filePrefix+ " fileSuffix="+fileSuffix);
+}
+
 /**
  * Background transfer of photos from server for storage, unless it is already stored
  */
@@ -52,44 +70,47 @@ void photoTransfer() {
   PImage img=null;
   JSONArray tfileList;
   String fileName;
-  int options = gui.dropDownList.getOptionsValue();
   if (DEBUG) println("PhotoTransfer()");
+
+  setupTransferOptions();
+
   tfileList = retrievePhotoList();
   if (tfileList != null && tfileList.size() > 0) {
     for (int fileIndex = 0; fileIndex< tfileList.size(); fileIndex++) {
       JSONObject fileObject = tfileList.getJSONObject(fileIndex);
       fileName = fileObject.getString("name");
-      if (DEBUG) println("fileName="+fileName);
+      if (DEBUG) println("Transfer fileName="+fileName+" prefix="+filePrefix+ " suffix="+fileSuffix);
 
-      if (fileName.toLowerCase().endsWith(fileType) || (fileName.startsWith(filePrefix)) &&
-        (!fileName.toLowerCase().startsWith(".trash"))) {
-        String fileUrl = baseUrl + "/" + fileName;
-        String outputFileName = "";
-        if (parallax > 0) {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
-        } else {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + fileSuffix + fileType;
-        }
-        if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
-          img = loadImage(fileUrl);
-          if (DEBUG) println("loading stored image "+fileUrl);
-          if (img != null) {
-            float ar = (float)img.width / (float) img.height;
-            outputFileName = fileName.substring(0);
-            boolean update = false;
-            if (ar >= 2.0) {
-              outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
-              update = true;
-            }
-            String outputPath = outputFolderPath + File.separator + outputFileName;
-            if (DEBUG) println("outputFileName="+outputFileName);
-            if (DEBUG) println("outputPath="+outputPath);
-            if (DEBUG) println("fileName="+fileName);
+      if ((!fileName.toLowerCase().startsWith(".trash")) && (fileName.toLowerCase().endsWith(fileType))) {
+        if (fileName.startsWith(filePrefix)) {
+          String fileUrl = baseUrl + "/" + fileName;
+          String sParallax = "";
+          if (parallax != 0 && filePrefix.equals(STEREO_PREFIX)) {
+            sParallax = "_p"+str(parallax);
+          }
+          String outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + sParallax + fileSuffix + fileType;
 
-            // modify parallax from infinity background
-            if (update) {
-              img = updateParallax(img, parallax);
-              // save parallax adjusted image
+          if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
+            img = loadImage(fileUrl);
+            if (DEBUG) println("loading stored image "+fileUrl);
+            if (img != null) {
+              float ar = (float)img.width / (float) img.height;
+              outputFileName = fileName.substring(0);
+              boolean update = false;
+              if (filePrefix.equals(STEREO_PREFIX)) {
+                //outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
+                update = true;
+              }
+              String outputPath = outputFolderPath + File.separator + outputFileName;
+              if (DEBUG) println("outputFileName="+outputFileName);
+              if (DEBUG) println("outputPath="+outputPath);
+              if (DEBUG) println("fileName="+fileName);
+
+              // modify parallax from infinity background
+              if (update) {
+                img = updateParallax(img, parallax);
+                // parallax adjusted image
+              }
               img.save(outputPath);
               if (DEBUG) println("saved Image outputFilePath="+outputPath);
             }
@@ -102,6 +123,7 @@ void photoTransfer() {
       }
     } // for
   }
+  // update screen with last image
   if ((tfileList.size() -1) > currentFileIndex) {
     if (img != null) {
       currentFileIndex = tfileList.size() -1;

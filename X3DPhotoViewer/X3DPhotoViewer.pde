@@ -57,16 +57,16 @@ final static String MONO_SUFFIX = "";
 final static String ANAGLYPH_SUFFIX = "_ana";
 final static String JPG_FILETYPE = ".jpg";
 final static String PNG_FILETYPE = ".png";
-String filePrefix = STEREO_PREFIX;
-String fileSuffix = STEREO_SUFFIX;
-String fileType   = JPG_FILETYPE;
+volatile String filePrefix = STEREO_PREFIX;
+volatile String fileSuffix = STEREO_SUFFIX;
+volatile String fileType   = JPG_FILETYPE;
 
 static final int PARALLAX = 237; // standard parallax adjustment for Xreal Beam Pro stereo window
 int parallax = PARALLAX;  // parallax adjustment
 
 float printAspectRatio = 6.0/4.0;  // default aspect ratio 6x4 inch print landscape orientation
-int printPxWidth = 1800;
-int printPxHeight = 1200;
+int printPxWidth = 1800;  // 300 DPI print
+int printPxHeight = 1200; // 300 DPI print
 
 volatile boolean started = false;
 volatile boolean first = false;
@@ -84,11 +84,9 @@ void setup() {
 
   openFileSystem();
   
-  //writeSavedHost(configFile, "0.0.0.0");  // for debug only, reset saved server ip address
+  //writeConfiguration(configFile, "0.0.0.0");  // for debug only, resets saved server ip address to require a scan
 
-  host = readSavedHost(configFile);
-  if (DEBUG) println("Saved host="+host+ " hostlsb="+hostlsb);
-  if (DEBUG) println("outputFolderPath="+outputFolderPath);
+  readConfiguration(configFile);  // read configuration file
 
   initGui();
 
@@ -102,28 +100,29 @@ void exit() {
   stopTransfer();
 }
 
-String readSavedHost(String filename) {
+void readConfiguration(String filename) {
   String result = "0.0.0.0";
   String[] lines = loadStrings(filename);
   if (lines != null) {
     result = lines[0];
   }
   try {
-    hostlsb = int(result.substring(result.lastIndexOf(".")+1));
+    host = result;
+    hostlsb = int(result.substring(host.lastIndexOf(".")+1));
   }
   catch (Exception e) {
     hostlsb = 0;
   }
-
-  return result;
+  if (DEBUG) println("Saved host="+host+ " hostlsb="+hostlsb);
+  if (DEBUG) println("outputFolderPath="+outputFolderPath);
 }
 
-void writeSavedHost(String filename, String url) {
+void writeConfiguration(String filename, String url) {
   String[] lines = new String[4];
   lines[0] = url;
   lines[1] = str(port);
   lines[2] = outputFolderPath;
-  lines[3] = "";
+  lines[3] = str(parallax);
   saveStrings(filename, lines);
 }
 
@@ -156,7 +155,8 @@ void draw() {
       showText("Server Found At: " + foundUrl, 1);
     }
     gui.displayMenuBar();
-    gui.dropDownList.display();
+    gui.optionDropDownList.display();
+    gui.prefixDropDownList.display();
   }
 
   // process key and mouse inputs on this main sketch loop

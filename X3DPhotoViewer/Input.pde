@@ -6,18 +6,20 @@ private int lastKey;
 private int lastKeyCode;
 
 void mousePressed() {
-  lastKeyCode = gui.menuBar.mousePressed(mouseX, mouseY);
+  int x = mouseX;
+  int y = mouseY;
+  lastKeyCode = gui.menuBar.isPressed(x, y);
   if (lastKeyCode == 0) {
-    mousePressedAdvance();
+    mousePressedAdvance(x, y);
   }
   lastKey = 0;
 }
 
-void mousePressedAdvance() {
+void mousePressedAdvance(int x, int y) {
   if (fileList == null || fileList.size() == 0) return;
-  if (mouseX > width/2 && mouseY > 3*IGui.FONT_SIZE) {
+  if (x > width/2 && y > 3*IGui.FONT_SIZE) {
     lastKeyCode = IGui.KEYCODE_G;
-  } else if (mouseX <width/2 && mouseY > 3*IGui.FONT_SIZE) {
+  } else if (x <width/2 && y > 3*IGui.FONT_SIZE) {
     lastKeyCode = IGui.KEYCODE_H;
   }
   //if (DEBUG) println("mousePressed currentFileIndex="+currentFileIndex);
@@ -58,7 +60,7 @@ int keyUpdate() {
   case IGui.KEYCODE_BACK:
     break;
   case IGui.KEYCODE_A: // start HTTP server search
-    writeSavedHost(configFile, "0.0.0.0");
+    writeConfiguration(configFile, "0.0.0.0");
     if (gui.toggleScanTextKey()) {
       startSearch();
     } else {
@@ -87,8 +89,13 @@ int keyUpdate() {
     break;
   case IGui.KEYCODE_F:
     //if (DEBUG) println("KEYCODE_F");
-    if (!gui.dropDownList.visible) gui.dropDownList.show();
-    else gui.dropDownList.hide();
+    if (!gui.optionDropDownList.visible) gui.optionDropDownList.show();
+    else gui.optionDropDownList.hide();
+    break;
+  case IGui.KEYCODE_P:
+    //if (DEBUG) println("KEYCODE_P");
+    if (!gui.prefixDropDownList.visible) gui.prefixDropDownList.show();
+    else gui.prefixDropDownList.hide();
     break;
   case IGui.KEYCODE_G:  // show next photo
     currentFileIndex++;
