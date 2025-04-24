@@ -18,6 +18,9 @@ SelectLibrary files;
 void openFileSystem() {
   // Clear the cache of any files from previous run
   //clearCache();
+    // Ensure we are on the main thread
+  runOnUIThread();
+
   outputFolderPath = File.separator + "storage" + File.separator + "emulated" + File.separator + "0"
     + File.separator + "Pictures" + File.separator + "X3D";
   requestPermissions();

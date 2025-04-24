@@ -1,5 +1,27 @@
 // Scan Local WiFi network for Simple HTTP server containing camera photos
 
+volatile String foundUrl = null;
+volatile boolean scanCompleted = false;
+String host = "127.0.0.1";
+String searchHost = "0.0.0.0";
+volatile int hostlsb = 0;
+volatile boolean searchThread = false;
+
+void startSearch() {
+  host = readSavedHost(configFile);
+  hostlsb = 0;
+  //searchThread = false;  // stop previous search thread
+  //delay(500);
+  foundUrl = null;
+  searchThread = true; // allow search thread
+  thread("searchForServer");
+}
+
+void stopSearch() {
+  searchThread = false;  // stop previous search thread
+  delay(500);
+}
+
 /**
  * Search for HTTP photo server on the local WiFi network
  * This method runs on a thread, called using thread("searchForServer");
@@ -8,17 +30,21 @@ void searchForServer() {
   // Get the local IP address during output folder selection
   if (DEBUG) println("Thread searchForServer()");
   String found = null;
+  scanCompleted = false;
   String localIp = getLocalIpAddress();
   if (DEBUG) println("Local IP: " + localIp +" host="+host + " hostlsb="+hostlsb);
   // Scan the network
-  if (hostlsb != 0) {
+  if (hostlsb != 0 && searchThread) {
     found = scanNetwork(localIp, port, hostlsb, hostlsb, timeout);  // inclusive ip range for port
   }
-  if (found == null && !searchThread) found = scanNetwork(localIp, port, 100, 199, timeout);  // inclusive port range
-  if (found == null && !searchThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
-  if (found == null && !searchThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
+
+  if (found == null && searchThread) found = scanNetwork(localIp, port, 100, 199, timeout);  // inclusive port range
+  if (found == null && searchThread) found = scanNetwork(localIp, port, 1, 99, timeout); // inclusive port range
+  if (found == null && searchThread) found = scanNetwork(localIp, port, 200, 254, timeout); // inclusive port range
+  if (found == null) scanCompleted = true;
   foundUrl = found;
   writeSavedHost(configFile, foundUrl);
+  gui.toggleScanTextKey();  // change menu label
   if (DEBUG) println("Done Server search Found: "+foundUrl);
 }
 
@@ -67,6 +93,9 @@ String scanNetwork(String localIp, int port, int low, int high, int timeout) {
   String subnet = localIp.substring(0, localIp.lastIndexOf('.'));
   // look for Android server at port
   for (int i = low; i <= high; i++) {
+    if (!searchThread) {
+      return null;
+    }
     searchHost = subnet + "." + i;
     //if (DEBUG) println("try "+searchHost);
     try {
@@ -74,7 +103,7 @@ String scanNetwork(String localIp, int port, int low, int high, int timeout) {
       if (isPortOpen(inetAddress, port, timeout)) {
         String hostName = inetAddress.getHostName();
         if (DEBUG) println("Host: " + hostName + " port " + port + " IP: " + searchHost);
-        searchThread = true;
+        searchThread = false;
         return searchHost;
       }
     }

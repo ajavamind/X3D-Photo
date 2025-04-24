@@ -130,16 +130,16 @@ interface IGui {
 }
 
 // Drop Down List Option items
-String[] items = {"SV_", "_2x1", "Anaglyph", "Card", "_L _R", "Parallax", "IMG_"};
+String[] items = {"SV_", "_2x1", "Anaglyph", "Card", "_L _R"};  // , "Parallax", "IMG_"};
 static final int OPTION_SV =  1;
 static final int OPTION_2x1 = 2;
 static final int OPTION_ANAGLYPH = 4;
 static final int OPTION_CARD = 8;
 static final int OPTION_L_R = 16;
-static final int OPTION_PARALLAX = 32;
-static final int OPTION_IMG = 64;
-int[] itemValues = {OPTION_SV, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L_R, OPTION_PARALLAX, OPTION_IMG};
-static final int OPTION_DEFAULT = OPTION_2x1 + OPTION_PARALLAX;
+//static final int OPTION_PARALLAX = 32;
+//static final int OPTION_IMG = 64;
+int[] itemValues = {OPTION_SV, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L_R};  //, OPTION_PARALLAX, OPTION_IMG};
+static final int OPTION_DEFAULT = OPTION_2x1;
 int optionValue = OPTION_DEFAULT;
 
 void initGui() {
@@ -166,10 +166,12 @@ class Gui {
   float iY;
   float mX;
   float mY;
-
+  boolean toggleScan = false;
+  boolean toggleTransfer = false;
+  
   /**
-  * Constructor
-  */
+   * Constructor
+   */
   Gui(PApplet base) {
     this.base = base;
   }
@@ -196,356 +198,385 @@ class Gui {
   void displayMenuBar() {
     menuBar.display();
   }
-}
 
-class MenuBar implements IGui {
-  PApplet base;
-  MenuKey refreshListKey;
-  MenuKey resetServerKey;
-  MenuKey firstPhotoKey;
-  MenuKey lastPhotoKey;
-  MenuKey saveFolderKey;
-  MenuKey dropDownKey;
-
-  MenuKey[] menuKey;
-  int numKeys = 6;
-
-  float menuBase;
-  float inset;
-  float x, y, w, h;
-  float iY;
-  color keyColor = black;
-
-  /**
-  * Constructor
-  */
-  public MenuBar(PApplet base) {
-    this.base = base;
-    resetServerKey = new MenuKey(base, KEYCODE_A, "Reset Server", FONT_SIZE, black);
-    firstPhotoKey = new MenuKey(base, KEYCODE_B, "Show First", FONT_SIZE, black);
-    refreshListKey = new MenuKey(base, KEYCODE_C, "Get List", FONT_SIZE, black);
-    lastPhotoKey = new MenuKey(base, KEYCODE_D, "Show Last", FONT_SIZE, black);
-    saveFolderKey = new MenuKey(base, KEYCODE_E, "Save Folder", FONT_SIZE, black);
-    dropDownKey = new MenuKey(base, KEYCODE_F, "Options", FONT_SIZE, black);
-    menuKey = new MenuKey[numKeys];
-    menuKey[0] = resetServerKey;
-    menuKey[1] = firstPhotoKey;
-    menuKey[2] = refreshListKey;
-    menuKey[3] = lastPhotoKey;
-    menuKey[4] = saveFolderKey;
-    menuKey[5] = dropDownKey;
-    x = 0;
-    iY = base.height/16;
-    y = base.height - iY;
-    w = base.width / ((float) numKeys);
-    h = iY-4;
-    inset = 40;
-    menuBase = FONT_SIZE+ FONT_SIZE/2;
-    ;
-    for (int i = 0; i < numKeys; i++) {
-      menuKey[i].setPosition(((float) i) * w + inset, menuBase, w - 2 * inset, h, inset);
+  boolean toggleScanTextKey() {
+    toggleScan = !toggleScan;
+    if (toggleScan) {
+      menuBar.setScanNetText("Stop Scan");
+    } else {
+      menuBar.setScanNetText("Scan Net");
     }
+    return toggleScan;
   }
 
-  public void setVisible(boolean visible) {
-    for (int i = 0; i < menuKey.length; i++) {
-      menuKey[i].setVisible(visible);
+  boolean toggleStartTransferKey() {
+    toggleTransfer = !toggleTransfer;
+    if (toggleTransfer) {
+      menuBar.setStartText("Stop ");
+    } else {
+      menuBar.setStartText("Start");
     }
+    return toggleTransfer;
   }
 
-  void setActive(boolean active) {
-    for (int i = 0; i < menuKey.length; i++) {
-      menuKey[i].setActive(active);
-    }
-  }
+  class MenuBar implements IGui {
+    PApplet base;
+    MenuKey refreshListKey;
+    MenuKey resetServerKey;
+    MenuKey firstPhotoKey;
+    MenuKey lastPhotoKey;
+    MenuKey saveFolderKey;
+    MenuKey dropDownKey;
 
-  void display() {
-    fill(128);
-    noStroke();
-    rect(0, menuBase, base.width, iY);
+    MenuKey[] menuKey;
+    int numKeys = 6;
 
-    for (int i = 0; i < menuKey.length; i++) {
-      menuKey[i].draw();
-      menuKey[i].setHighlight(false);
-    }
-  }
+    float menuBase;
+    float inset;
+    float x, y, w, h;
+    float iY;
+    color keyColor = black;
 
-  int mousePressed(int x, int y) {
-    int mkeyCode = 0;
-    int mkey = 0;
-    //if (DEBUG) println("menubar mouse x="+x + " y="+y + " menuBase="+menuBase);
-    if (y > menuBase ) {
-      // menu touch control area at bottom of screen or sides
+    /**
+     * Constructor
+     */
+    public MenuBar(PApplet base) {
+      this.base = base;
+      resetServerKey = new MenuKey(base, KEYCODE_A, "Scan Net", FONT_SIZE, black);
+      firstPhotoKey = new MenuKey(base, KEYCODE_B, "Show First", FONT_SIZE, black);
+      refreshListKey = new MenuKey(base, KEYCODE_C, "Start", FONT_SIZE, black);
+      lastPhotoKey = new MenuKey(base, KEYCODE_D, "Show Last", FONT_SIZE, black);
+      saveFolderKey = new MenuKey(base, KEYCODE_E, "Folder", FONT_SIZE, black);
+      dropDownKey = new MenuKey(base, KEYCODE_F, "Options", FONT_SIZE, black);
+      menuKey = new MenuKey[numKeys];
+      menuKey[0] = resetServerKey;
+      menuKey[1] = firstPhotoKey;
+      menuKey[2] = refreshListKey;
+      menuKey[3] = lastPhotoKey;
+      menuKey[4] = saveFolderKey;
+      menuKey[5] = dropDownKey;
+      x = 0;
+      iY = base.height/16;
+      y = base.height - iY;
+      w = base.width / ((float) numKeys);
+      h = iY-4;
+      inset = 40;
+      menuBase = FONT_SIZE+ FONT_SIZE/2;
+      ;
       for (int i = 0; i < numKeys; i++) {
-        if (menuKey[i].visible && menuKey[i].active) {
-          if (x >= menuKey[i].x && x<= (menuKey[i].x + menuKey[i].w) &&
-            y >= menuKey[i].y && y <= (menuKey[i].y +menuKey[i].h)) {
-            mkeyCode = menuKey[i].keyCode;
-            menuKey[i].setHighlight(true);
+        menuKey[i].setPosition(((float) i) * w + inset, menuBase, w - 2 * inset, h, inset);
+      }
+    }
+
+    void setScanNetText(String caption) {
+      resetServerKey.setText(caption);
+    }
+
+    void setStartText(String caption) {
+      refreshListKey.setText(caption);
+    }
+
+    public void setVisible(boolean visible) {
+      for (int i = 0; i < menuKey.length; i++) {
+        menuKey[i].setVisible(visible);
+      }
+    }
+
+    void setActive(boolean active) {
+      for (int i = 0; i < menuKey.length; i++) {
+        menuKey[i].setActive(active);
+      }
+    }
+
+    void display() {
+      fill(128);
+      noStroke();
+      rect(0, menuBase, base.width, iY);
+
+      for (int i = 0; i < menuKey.length; i++) {
+        menuKey[i].draw();
+        menuKey[i].setHighlight(false);
+      }
+    }
+
+    int mousePressed(int x, int y) {
+      int mkeyCode = 0;
+      int mkey = 0;
+      //if (DEBUG) println("menubar mouse x="+x + " y="+y + " menuBase="+menuBase);
+      if (y > menuBase ) {
+        // menu touch control area at bottom of screen or sides
+        for (int i = 0; i < numKeys; i++) {
+          if (menuKey[i].visible && menuKey[i].active) {
+            if (x >= menuKey[i].x && x<= (menuKey[i].x + menuKey[i].w) &&
+              y >= menuKey[i].y && y <= (menuKey[i].y +menuKey[i].h)) {
+              mkeyCode = menuKey[i].keyCode;
+              menuKey[i].setHighlight(true);
+              break;
+            }
+          }
+        }
+        if (mkeyCode == 0) {
+          gui.dropDownList.mousePressed(mouseX, mouseY);
+        }
+      }
+      return mkeyCode;
+    }
+  }
+
+  class MenuKey implements IGui {
+    float x, y, w, h; // location
+    float inset;
+    String text;
+    PImage img;
+    int keyColor;
+    int keyCode;
+    float fontSize;
+    boolean visible = false;
+    boolean highlight = false;
+    boolean active = true;
+    boolean corner = true;
+    boolean textOnly = false;
+    int value;
+    PApplet base;
+
+    /**
+     * Constructor
+     */
+    MenuKey() {
+    }
+
+    MenuKey(PApplet base, int keyCode, String text, float fontSize, int keyColor) {
+      this.base = base;
+      this.keyCode = keyCode;
+      this.text = text;
+      this.keyColor = keyColor;
+      this.fontSize = fontSize;
+      this.img = null;
+    }
+
+    MenuKey(PApplet base, int keyCode, PImage img, int keyColor) {
+      this.base = base;
+      this.keyCode = keyCode;
+      this.img = img;
+      this.keyColor = keyColor;
+    }
+
+    void setBase(PApplet base) {
+      this.base = base;
+    }
+
+    void setPosition(float x, float y, float w, float h, float inset) {
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.h = h;
+      this.inset = inset;
+    }
+
+    void setValue(int value) {
+      this.value = value;
+    }
+
+    int getValue() {
+      return value;
+    }
+
+    void setHighlight(boolean highlight) {
+      this.highlight = highlight;
+    }
+
+    void setVisible(boolean visible) {
+      this.visible = visible;
+    }
+
+    void setActive(boolean active) {
+      this.active = active;
+    }
+
+    void setCorner(boolean corner) {
+      this.corner = corner;
+    }
+
+    void setTextOnly(boolean value) {
+      this.textOnly = value;
+    }
+
+    void draw() {
+      if (visible) {
+        base.stroke(gray);
+        base.strokeWeight(4);
+        base.rectMode(base.CORNER);
+        if (img != null) {
+          if (active) {
+            base.fill(white);
+          } else {
+            base.fill(gray);
+          }
+          base.rect(x, y, w, h, inset);
+          float ar = (float) img.width/ (float) img.height;
+          float ah = h*0.8f;
+          base.image(img, x- (ah*ar)/2+w/2, y+ah/8, ah*ar, ah);
+          //base.noFill();
+          base.stroke(keyColor);
+          if (highlight) {
+            base.stroke(255, 255, 0);
+            base.strokeWeight(12);
+            base.noFill();
+            //base.fill(255, 128, 0);
+            base.rect(x, y, w, h);
+          }
+        } else if (text != null) {
+          if (active) {
+            if (highlight) {
+              base.fill(0, 255, 255);
+            } else {
+              base.fill(white);
+            }
+          } else {
+            base.fill(gray);
+          }
+          if (corner) {
+            base.rect(x, y, w, h, inset);
+          }
+          base.textSize(fontSize);
+          base.noStroke();
+          base.noFill();
+          if (corner) {
+            base.fill(black);
+          } else {
+            base.fill(graytransparent);
+          }
+          base.textAlign(base.CENTER, base.CENTER);
+          base.fill(keyColor);
+          base.text(text, x, y, w, h);
+        }
+      }
+    }
+  
+    /**
+     * @param mx mouse x coordinate
+     * @param my mouse y coordinate
+     * @return boolean true if mouse in key area
+     */
+    boolean isPressed(int mx, int my) {
+      boolean hit = false;
+      if (my >= y && my <= (y + h)
+        && mx >= x && mx <= (x + w)) {
+        hit = true;
+      }
+      return hit;
+    }
+
+    int getPressed(int mx, int my, int n) {
+      int area = 0;
+      if (my >= y && my <= (y + h)) {
+        for (int i = 1; i <= n; i++) {
+          if (mx >= x && mx <= (x + i * w / n)) {
+            area = i;
             break;
           }
         }
       }
-      if (mkeyCode == 0) {
-        gui.dropDownList.mousePressed(mouseX, mouseY);
-      }
+      return area;
     }
-    return mkeyCode;
-  }
-}
 
-class MenuKey implements IGui {
-  float x, y, w, h; // location
-  float inset;
-  String cap;     // caption
-  PImage img;
-  int keyColor;
-  int keyCode;
-  float fontSize;
-  boolean visible = false;
-  boolean highlight = false;
-  boolean active = true;
-  boolean corner = true;
-  boolean textOnly = false;
-  int value;
-  PApplet base;
+    void setText(String text) {
+      this.text = text;
+    }
 
-  /**
-  * Constructor
-  */
-  MenuKey() {
+    void setKeyCode(int keyCode) {
+      this.keyCode = keyCode;
+    }
+
+    int getKeyCode() {
+      return keyCode;
+    }
+
+    public void setImage(PImage img) {
+      this.img = img;
+    }
   }
 
-  MenuKey(PApplet base, int keyCode, String cap, float fontSize, int keyColor) {
-    this.base = base;
-    this.keyCode = keyCode;
-    this.cap = cap;
-    this.keyColor = keyColor;
-    this.fontSize = fontSize;
-    this.img = null;
-  }
 
-  MenuKey(PApplet base, int keyCode, PImage img, int keyColor) {
-    this.base = base;
-    this.keyCode = keyCode;
-    this.img = img;
-    this.keyColor = keyColor;
-  }
+  // DropDownList class
+  class DropDownList implements IGui {
+    PApplet base;
+    String[] items;
+    int[] itemValues;
+    int optionsValue;
+    float x, y, w, h;
+    boolean visible = false;
+    int highlight = -1;
+    float itemHeight;
+    int keyColor;
+    int bgColor;
+    int textColor;
+    int borderColor;
+    float fontSize;
 
-  void setBase(PApplet base) {
-    this.base = base;
-  }
+    /**
+     * Constructor
+     */
+    DropDownList(PApplet base, String[] items, int[] itemValues, int optionsValue, float x, float y, float w, float fontSize) {
+      this.base = base;
+      this.items = items;
+      this.itemValues = itemValues;
+      this.optionsValue = optionsValue;
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.fontSize = fontSize;
+      this.itemHeight = fontSize * 1.2;
+      this.h = items.length * itemHeight;
+      this.keyColor = black;
+      this.bgColor = white;
+      this.textColor = black;
+      this.borderColor = gray;
+    }
 
-  void setPosition(float x, float y, float w, float h, float inset) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.inset = inset;
-  }
+    void show() {
+      visible = true;
+    }
 
-  void setValue(int value) {
-    this.value = value;
-  }
+    void hide() {
+      visible = false;
+    }
 
-  int getValue() {
-    return value;
-  }
-
-  void setHighlight(boolean highlight) {
-    this.highlight = highlight;
-  }
-
-  void setVisible(boolean visible) {
-    this.visible = visible;
-  }
-
-  void setActive(boolean active) {
-    this.active = active;
-  }
-
-  void setCorner(boolean corner) {
-    this.corner = corner;
-  }
-
-  void setTextOnly(boolean value) {
-    this.textOnly = value;
-  }
-
-  void draw() {
-    if (visible) {
-      base.stroke(gray);
-      base.strokeWeight(4);
-      base.rectMode(base.CORNER);
-      if (img != null) {
-        if (active) {
-          base.fill(white);
-        } else {
-          base.fill(gray);
+    void display() {
+      if (!visible) return;
+      base.stroke(borderColor);
+      base.fill(bgColor);
+      base.rect(x, y, w, h, 8);
+      for (int i = 0; i < items.length; i++) {
+        float iy = y + i * itemHeight;
+        int value = itemValues[i];
+        if ((optionsValue & value) != 0) {
+          base.fill(lightblue);
+          base.rect(x, iy, w, itemHeight);
         }
-        base.rect(x, y, w, h, inset);
-        float ar = (float) img.width/ (float) img.height;
-        float ah = h*0.8f;
-        base.image(img, x- (ah*ar)/2+w/2, y+ah/8, ah*ar, ah);
-        //base.noFill();
-        base.stroke(keyColor);
-        if (highlight) {
-          base.stroke(255, 255, 0);
-          base.strokeWeight(12);
-          base.noFill();
-          //base.fill(255, 128, 0);
-          base.rect(x, y, w, h);
-        }
-      } else if (cap != null) {
-        if (active) {
-          if (highlight) {
-            base.fill(0, 255, 255);
-          } else {
-            base.fill(white);
-          }
-        } else {
-          base.fill(gray);
-        }
-        if (corner) {
-          base.rect(x, y, w, h, inset);
-        }
+        base.fill(textColor);
+        base.textAlign(base.LEFT, base.CENTER);
         base.textSize(fontSize);
-        base.noStroke();
-        base.noFill();
-        if (corner) {
-          base.fill(black);
-        } else {
-          base.fill(graytransparent);
-        }
-        base.textAlign(base.CENTER, base.CENTER);
-        base.fill(keyColor);
-        base.text(cap, x, y, w, h);
+        base.text(items[i], x + 10, iy + itemHeight/2);
       }
     }
-  }
 
-  /**
-   * @param mx mouse x coordinate
-   * @param my mouse y coordinate
-   * @return boolean true if mouse in key area
-   */
-  boolean isPressed(int mx, int my) {
-    boolean hit = false;
-    if (my >= y && my <= (y + h)
-      && mx >= x && mx <= (x + w)) {
-      hit = true;
-    }
-    return hit;
-  }
-
-  int getPressed(int mx, int my, int n) {
-    int area = 0;
-    if (my >= y && my <= (y + h)) {
-      for (int i = 1; i <= n; i++) {
-        if (mx >= x && mx <= (x + i * w / n)) {
-          area = i;
-          break;
+    // Returns index if selected, -1 otherwise
+    // sets option values
+    int mousePressed(int mx, int my) {
+      if (!visible) return -1;
+      if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
+        int idx = int((my - y) / itemHeight);
+        if (idx >= 0 && idx < items.length) {
+          optionsValue = optionsValue ^ itemValues[idx];
+          return idx;
         }
       }
+      return -1;
     }
-    return area;
-  }
 
-  void setCap(String cap) {
-    this.cap = cap;
-  }
-
-  void setKeyCode(int keyCode) {
-    this.keyCode = keyCode;
-  }
-
-  int getKeyCode() {
-    return keyCode;
-  }
-
-  public void setImage(PImage img) {
-    this.img = img;
-  }
-}
-
-
-// DropDownList class
-class DropDownList implements IGui {
-  PApplet base;
-  String[] items;
-  int[] itemValues;
-  int optionsValue;
-  float x, y, w, h;
-  boolean visible = false;
-  int highlight = -1;
-  float itemHeight;
-  int keyColor;
-  int bgColor;
-  int textColor;
-  int borderColor;
-  float fontSize;
-
-  /**
-  * Constructor
-  */
-  DropDownList(PApplet base, String[] items, int[] itemValues, int optionsValue, float x, float y, float w, float fontSize) {
-    this.base = base;
-    this.items = items;
-    this.itemValues = itemValues;
-    this.optionsValue = optionsValue;
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.fontSize = fontSize;
-    this.itemHeight = fontSize * 1.2;
-    this.h = items.length * itemHeight;
-    this.keyColor = black;
-    this.bgColor = white;
-    this.textColor = black;
-    this.borderColor = gray;
-  }
-
-  void show() {
-    visible = true;
-  }
-  void hide() {
-    visible = false;
-  }
-  void display() {
-    if (!visible) return;
-    base.stroke(borderColor);
-    base.fill(bgColor);
-    base.rect(x, y, w, h, 8);
-    for (int i = 0; i < items.length; i++) {
-      float iy = y + i * itemHeight;
-      int value = itemValues[i];
-      if ((optionsValue & value) != 0) {
-        base.fill(lightblue);
-        base.rect(x, iy, w, itemHeight);
-      }
-      base.fill(textColor);
-      base.textAlign(base.LEFT, base.CENTER);
-      base.textSize(fontSize);
-      base.text(items[i], x + 10, iy + itemHeight/2);
+    int getOptionsValue() {
+      return optionsValue;
     }
   }
-
-  // Returns index if selected, -1 otherwise
-  // sets option values
-  int mousePressed(int mx, int my) {
-    if (!visible) return -1;
-    if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
-      int idx = int((my - y) / itemHeight);
-      if (idx >= 0 && idx < items.length) {
-        optionsValue = optionsValue ^ itemValues[idx];
-        return idx;
-      }
-    }
-    return -1;
-  }
-  
-  int getOptionsValue() {
-    return optionsValue;
-  }
-  
 }

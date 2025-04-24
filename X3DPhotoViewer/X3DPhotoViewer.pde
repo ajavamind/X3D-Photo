@@ -36,23 +36,18 @@ String title="X3D Photo Transfer";
 String version = "1.10";
 String credits = "Andy Modla";
 
-String host = "127.0.0.1";
-String searchHost = "0.0.0.0";
-volatile int hostlsb = 0;
-volatile boolean searchThread = false;
 String baseUrl = null;
 String outputFolderPath = "";
 String configFile = "X3DPhotoViewer.txt";
 volatile boolean downloadStarted = false;
 volatile JSONArray fileList;
-int currentFileIndex = 0;
+volatile int currentFileIndex = 0;
 volatile PImage currentImage;
 boolean done = false;
 String urlSearch;
 int port = 8333;  // expected port for HTTP image server
 int timeout = 500; // 0.5 second
 boolean ready = false;
-volatile String foundUrl = null;
 
 String fileName="";
 final static String STEREO_PREFIX = "SV_";
@@ -88,24 +83,24 @@ void setup() {
   orientation(LANDSCAPE);
 
   openFileSystem();
+  
   //writeSavedHost(configFile, "0.0.0.0");  // for debug only, reset saved server ip address
 
   host = readSavedHost(configFile);
   if (DEBUG) println("Saved host="+host+ " hostlsb="+hostlsb);
+  if (DEBUG) println("outputFolderPath="+outputFolderPath);
 
   initGui();
 
   urlSearch = "Searching for HTTP Photo Server";
 
-  // Ensure we are on the main thread
-  runOnUIThread();
+}
 
-  // find server IP address
-  thread("searchForServer");
-
-  // start transfering all photos from the server when IP address found
-  thread("photoTransferThread");
-} // setup()
+// stop threads before exit
+void exit() {
+  stopSearch();
+  stopTransfer();
+}
 
 String readSavedHost(String filename) {
   String result = "0.0.0.0";
@@ -153,7 +148,10 @@ void draw() {
     drawPhotoViewer();
 
     if (foundUrl == null) {
-      showText("Checking For Server At: " + searchHost, 1);
+      if (scanCompleted) {
+      } else {
+        showText("Checking For Server At: " + searchHost, 1);
+      }
     } else {
       showText("Server Found At: " + foundUrl, 1);
     }
@@ -276,7 +274,7 @@ void drawPhotoViewer() {
   }
 
   if (foundUrl == null) {
-    showText("Searching for HTTP Photo Server.", 2);
+    if (!scanCompleted) showText("Searching for HTTP Photo Server.", 2);
   } else {
     if (fileList != null && fileList.size() > 0) {
       String fText = str(currentFileIndex+1) + " of " +fileList.size() + " " + fileName;
@@ -497,6 +495,9 @@ void folderSelected(File selection) {
   } else {
     if (DEBUG) println("User selected " + selection.getAbsolutePath());
     outputFolderPath = selection.getAbsolutePath();
+    fileList = null;
+    currentFileIndex = 0;
+    first = true;
   }
   getFolder = false;
 }

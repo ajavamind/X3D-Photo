@@ -4,12 +4,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 Timer wakeupTimer;
-boolean wakeup = false;
+volatile boolean wakeup = false;
 volatile boolean transferThread = false;
-
-//void stop() {
-//  transferThread = false;
-//}
 
 void startWakeupTimer() {
   wakeupTimer = new Timer();
@@ -25,6 +21,14 @@ void startWakeupTimer() {
   wakeupTimer.scheduleAtFixedRate(task, 0, 5000);  // 5 second interval
 }
 
+void startTransfer() {
+  thread("photoTransferThread");
+}
+
+void stopTransfer() {
+  wakeupTimer.cancel();
+  transferThread = false;
+}
 
 /**
  * Thread for background load of photos from server
@@ -37,25 +41,23 @@ void photoTransferThread() {
     if (wakeup && foundUrl != null) {
       wakeup = false;
       photoTransfer();
-      //startWakeupTimer();
     }
   }
 }
-
 
 /**
  * Background transfer of photos from server for storage, unless it is already stored
  */
 void photoTransfer() {
-  PImage img;
-  JSONArray fileList;
+  PImage img=null;
+  JSONArray tfileList;
   String fileName;
   int options = gui.dropDownList.getOptionsValue();
   if (DEBUG) println("PhotoTransfer()");
-  fileList = retrievePhotoList();
-  if (fileList != null && fileList.size() > 0) {
-    for (int fileIndex = 0; fileIndex< fileList.size(); fileIndex++) {
-      JSONObject fileObject = fileList.getJSONObject(fileIndex);
+  tfileList = retrievePhotoList();
+  if (tfileList != null && tfileList.size() > 0) {
+    for (int fileIndex = 0; fileIndex< tfileList.size(); fileIndex++) {
+      JSONObject fileObject = tfileList.getJSONObject(fileIndex);
       fileName = fileObject.getString("name");
       if (DEBUG) println("fileName="+fileName);
 
@@ -93,12 +95,19 @@ void photoTransfer() {
             }
           }
         }
-      } else { // ignore image and remove from fileList
-        fileList.remove(fileIndex);
+      } else { // ignore image and remove from tfileList
+        tfileList.remove(fileIndex);
         fileIndex--;
         if (fileIndex  < 0) fileIndex = 0;
       }
     } // for
+  }
+  if ((tfileList.size() -1) > currentFileIndex) {
+    if (img != null) {
+      currentFileIndex = tfileList.size() -1;
+      fileList = tfileList;
+      currentImage = img;
+    }
   }
 }
 

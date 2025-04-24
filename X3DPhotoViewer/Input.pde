@@ -57,22 +57,26 @@ int keyUpdate() {
   switch(lastKeyCode) {
   case IGui.KEYCODE_BACK:
     break;
-  case IGui.KEYCODE_A: // reset HTTP server search
+  case IGui.KEYCODE_A: // start HTTP server search
     writeSavedHost(configFile, "0.0.0.0");
-    host = readSavedHost(configFile);
-    hostlsb = 0;
-    searchThread = true;
-    delay(500);
-    foundUrl = null;
-    searchThread = false;
-    thread("searchForServer");
+    if (gui.toggleScanTextKey()) {
+      startSearch();
+    } else {
+      stopSearch();
+    }
     break;
   case IGui.KEYCODE_B: // show first photo
     currentFileIndex = 0;
     first = true;
     break;
   case IGui.KEYCODE_C:  // get list of photos available on the HTTP server
-    first = true;
+    if (gui.toggleStartTransferKey()) {
+      startTransfer();
+      first = true;
+    } else {
+      first = false;
+      stopTransfer();
+    }
     break;
   case IGui.KEYCODE_D: // show last photo
     currentFileIndex = fileList.size()-1;
