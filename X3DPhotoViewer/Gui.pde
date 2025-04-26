@@ -77,10 +77,10 @@ interface IGui {
   static final int KEYCODE_SINGLE_QUOTE = 222;
 
   static final float SMALL_FONT_SIZE = 24;
-  static final float FONT_SIZE = 48.0;
-  static final float MEDIUM_FONT_SIZE =  72;
-  static final float LARGE_FONT_SIZE = 96;
-  static final float GIANT_FONT_SIZE = 128;
+  static final float FONT_SIZE = 36.0;
+  static final float MEDIUM_FONT_SIZE =  48.0;
+  static final float LARGE_FONT_SIZE = 72.0;
+  static final float GIANT_FONT_SIZE = 96.0;
 
   // color is ARGB bytes - Alpha, Red, Blue, Green
   static final int black = #FF000000;   // black
@@ -180,7 +180,7 @@ class Gui {
   float mY;
   boolean toggleScan = false;
   boolean toggleTransfer = false;
-  
+
   /**
    * Constructor
    */
@@ -204,13 +204,13 @@ class Gui {
     float ddX = gui.menuBar.menuKey[5].x;
     float ddY = gui.menuBar.menuKey[5].y + gui.menuBar.menuKey[5].h + 4;
     float ddW = gui.menuBar.menuKey[5].w;
-    optionDropDownList = new DropDownList(base, itemNames, itemValues, optionValue, ddX, ddY, ddW, IGui.FONT_SIZE);
-    
+    optionDropDownList = new DropDownList(base, itemNames, itemValues, optionValue, ddX, ddY, ddW, IGui.MEDIUM_FONT_SIZE);
+
     // Place drop down list below the new menu key
     ddX = gui.menuBar.menuKey[6].x;
     ddY = gui.menuBar.menuKey[6].y + gui.menuBar.menuKey[6].h + 4;
     ddW = gui.menuBar.menuKey[6].w;
-    prefixDropDownList = new DropDownList(base, prefixNames, prefixValues, prefixValue, ddX, ddY, ddW, IGui.FONT_SIZE);
+    prefixDropDownList = new DropDownList(base, prefixNames, prefixValues, prefixValue, ddX, ddY, ddW, IGui.MEDIUM_FONT_SIZE);
   }
 
   void displayMenuBar() {
@@ -260,13 +260,13 @@ class Gui {
      */
     public MenuBar(PApplet base) {
       this.base = base;
-      resetServerKey = new MenuKey(base, KEYCODE_A, "Scan", FONT_SIZE, black);
-      firstPhotoKey = new MenuKey(base, KEYCODE_B, "First", FONT_SIZE, black);
-      refreshListKey = new MenuKey(base, KEYCODE_C, "Start", FONT_SIZE, black);
-      lastPhotoKey = new MenuKey(base, KEYCODE_D, "Last", FONT_SIZE, black);
-      saveFolderKey = new MenuKey(base, KEYCODE_E, "Folder", FONT_SIZE, black);
-      optionDropDownKey = new MenuKey(base, KEYCODE_F, "Options", FONT_SIZE, black);
-      prefixDropDownKey = new MenuKey(base, KEYCODE_P, "Prefix", FONT_SIZE, black);
+      resetServerKey = new MenuKey(base, KEYCODE_A, "Scan", MEDIUM_FONT_SIZE, black);
+      firstPhotoKey = new MenuKey(base, KEYCODE_B, "First", MEDIUM_FONT_SIZE, black);
+      refreshListKey = new MenuKey(base, KEYCODE_C, "Start", MEDIUM_FONT_SIZE, black);
+      lastPhotoKey = new MenuKey(base, KEYCODE_D, "Last", MEDIUM_FONT_SIZE, black);
+      saveFolderKey = new MenuKey(base, KEYCODE_E, "Folder", MEDIUM_FONT_SIZE, black);
+      optionDropDownKey = new MenuKey(base, KEYCODE_F, "Options", MEDIUM_FONT_SIZE, black);
+      prefixDropDownKey = new MenuKey(base, KEYCODE_P, "Prefix", MEDIUM_FONT_SIZE, black);
       menuKey = new MenuKey[numKeys];
       menuKey[0] = resetServerKey;
       menuKey[1] = firstPhotoKey;
@@ -336,8 +336,8 @@ class Gui {
           }
         }
         if (mkeyCode == 0) {
-          if (gui.optionDropDownList.isPressed(x, y) >= 0) {} 
-          else gui.prefixDropDownList.isPressed(x, y);
+          if (gui.optionDropDownList.isPressed(x, y) >= 0) {
+          } else gui.prefixDropDownList.isPressed(x, y);
         }
       }
       return mkeyCode;
@@ -473,7 +473,7 @@ class Gui {
         }
       }
     }
-  
+
     /**
      * @param mx mouse x coordinate
      * @param my mouse y coordinate
@@ -534,6 +534,7 @@ class Gui {
     int textColor;
     int borderColor;
     float fontSize;
+    boolean exclusive = true;
 
     /**
      * Constructor
@@ -589,7 +590,12 @@ class Gui {
       if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
         int idx = int((my - y) / itemHeight);
         if (idx >= 0 && idx < items.length) {
-          itemValue = itemValue ^ itemValues[idx];
+          if (exclusive) {
+            itemValue = 0;
+            itemValue = itemValue | itemValues[idx];
+          } else {
+            itemValue = itemValue ^ itemValues[idx];
+          }
           return idx;
         }
       }

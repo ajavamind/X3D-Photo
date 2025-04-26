@@ -6,6 +6,7 @@ import java.util.TimerTask;
 Timer wakeupTimer;
 volatile boolean wakeup = false;
 volatile boolean transferThread = false;
+volatile boolean transferRunning = false;
 
 void startWakeupTimer() {
   wakeupTimer = new Timer();
@@ -13,7 +14,7 @@ void startWakeupTimer() {
   TimerTask task = new TimerTask() {
     public void run() {
       wakeup = true;
-      //println("wakeup");
+      if (DEBUG) println("===Wakeup timer=============");
       //wakeupTimer.cancel();
     }
   };
@@ -28,6 +29,7 @@ void startTransfer() {
 void stopTransfer() {
   wakeupTimer.cancel();
   transferThread = false;
+  transferRunning = false;
 }
 
 /**
@@ -40,7 +42,9 @@ void photoTransferThread() {
   while (transferThread) {
     if (wakeup && foundUrl != null) {
       wakeup = false;
-      photoTransfer();
+      if (!transferRunning) {
+        photoTransfer();
+      }
     }
   }
 }
@@ -60,7 +64,7 @@ void setupTransferOptions() {
   } else if ((options & PREFIX_IMG) != 0) {
     filePrefix = MONO_PREFIX;
   }
-  println("set options filePrefix="+filePrefix+ " fileSuffix="+fileSuffix);
+  if (DEBUG) println("set options filePrefix="+filePrefix+ " fileSuffix="+fileSuffix);
 }
 
 /**
@@ -70,6 +74,8 @@ void photoTransfer() {
   PImage img=null;
   JSONArray tfileList;
   String fileName;
+  String outputFileName = "";
+  transferRunning = true;
   if (DEBUG) println("PhotoTransfer()");
 
   setupTransferOptions();
@@ -88,8 +94,9 @@ void photoTransfer() {
           if (parallax != 0 && filePrefix.equals(STEREO_PREFIX)) {
             sParallax = "_p"+str(parallax);
           }
-          String outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + sParallax + fileSuffix + fileType;
-
+          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + sParallax + fileSuffix + fileType;
+          if (DEBUG) println("Transfer outputFileName="+outputFileName);
+          if (DEBUG) println("Transfer outputFolderPath=" +outputFolderPath + File.separator+outputFileName);
           if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
             img = loadImage(fileUrl);
             if (DEBUG) println("loading stored image "+fileUrl);
@@ -98,7 +105,7 @@ void photoTransfer() {
               outputFileName = fileName.substring(0);
               boolean update = false;
               if (filePrefix.equals(STEREO_PREFIX)) {
-                //outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
+                outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
                 update = true;
               }
               String outputPath = outputFolderPath + File.separator + outputFileName;
@@ -121,125 +128,172 @@ void photoTransfer() {
         fileIndex--;
         if (fileIndex  < 0) fileIndex = 0;
       }
+      fileList = tfileList;
     } // for
   }
+    
   // update screen with last image
   if ((tfileList.size() -1) > currentFileIndex) {
     if (img != null) {
       currentFileIndex = tfileList.size() -1;
-      fileList = tfileList;
       currentImage = img;
+      fileName = outputFileName;
     }
   }
+  transferRunning = false;
+  if (DEBUG) println("Transfer Finished");
+}
+
+/**
+ * Retrieve Photo list JSON file from HTTP photo server
+ * Assumes Android app "Simple HTTP Server PLUS" is running on an Android camera device connected to same network as this app.
+ *
+ */
+JSONArray retrievePhotoList() {
+  int before = 0;
+  int after = 0;
+  JSONArray fileList = null;
+  if (foundUrl == null) return null;
+  baseUrl = "http://" + foundUrl + ":" + str(port);
+  String jsonUrl = baseUrl + "/api/file/list?path=/";
+  if (DEBUG) println("jsonUrl="+jsonUrl);
+  try {
+    fileList = loadJSONArray(jsonUrl);
+  }
+  catch (Exception e) {
+    fileList = null;
+    return fileList;
+  }
+  // remove files from list that are not viewable
+  before = fileList.size();
+  for (int i=0; i<fileList.size(); i++) {
+    JSONObject fileObject = fileList.getJSONObject(i);
+    String fileName = fileObject.getString("name");
+    if ((fileName.toLowerCase().endsWith(".jpg") ||
+      fileName.toLowerCase().endsWith(".png") ||
+      fileName.toLowerCase().endsWith(".jps")
+      ) && (!fileName.startsWith(".trash")) && fileName.startsWith(filePrefix)) {
+    } else {
+      if (DEBUG) println("removed fileName="+fileName);
+      fileList.remove(i);
+      i--;
+    }
+  }
+  after = fileList.size();
+  if (fileList != null && currentFileIndex >= fileList.size()) {
+    currentFileIndex = fileList.size() - 1;
+  }
+  if (DEBUG) println("before="+before + " after="+after);
+  return fileList;
 }
 
 // ------------------------------------------------------------------
 // NOT USED - this is for archive reference only
-void drawPhotoTransfer() {
-  if (outputFolderPath.length()> 20)
-    text("Image Save Folder: "+ outputFolderPath.substring(20), 20, 6*IGui.FONT_SIZE);
-  else
-    text("Image Save Folder: ", 20, 6*IGui.FONT_SIZE);
+//void drawPhotoTransfer() {
+//  if (outputFolderPath.length()> 20)
+//    text("Image Save Folder: "+ outputFolderPath.substring(20), 20, 6*IGui.FONT_SIZE);
+//  else
+//    text("Image Save Folder: ", 20, 6*IGui.FONT_SIZE);
 
-  String header = title + " - Version " + version + " - " + credits;
-  if (!downloadStarted) {
-    text(header, 20, IGui.FONT_SIZE/2, width, IGui.FONT_SIZE);
-  }
+//  String header = title + " - Version " + version + " - " + credits;
+//  if (!downloadStarted) {
+//    text(header, 20, IGui.FONT_SIZE/2, width, IGui.FONT_SIZE);
+//  }
 
-  if (downloadStarted && !done) {
-    if (fileList == null) fileList = retrievePhotoList();
-    if (fileList != null && currentFileIndex < fileList.size()) {
-      JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
-      fileName = fileObject.getString("name");
-      if (DEBUG) println("fileName="+fileName);
-      //  if (fileName.endsWith(".jpg") && (!fileName.startsWith(".trash"))) {
-      //    valid = true;
-      //  } else {
-      //    currentFileIndex++;
-      //    if (currentFileIndex >= fileList.size()) {
-      //      return;
-      //    }
-      //  }
-      //}
-      String fileUrl = baseUrl + "/" + fileName;
-      String outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
-      String outFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_2x1.jpg";
-      if (!fileExists(outputFolderPath + File.separator + outFileName)) {
-        try {
-          saveImageFromUrl(fileUrl, outputFolderPath + File.separator +outFileName);
-          if (DEBUG) println("Image downloaded and saved as " + outFileName);
-        }
-        catch (IOException e) {
-          e.printStackTrace();
-        }
-      } else {
-        if (DEBUG) println("Skipping existing file: " + outFileName);
-      }
-      if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
-        currentImage = loadImage(fileUrl);
-        if (DEBUG) println("loading "+fileUrl);
-      } else {
-        if (DEBUG) println("Skipping existing file: " + fileName);
-        currentFileIndex++;
-        currentImage = null;
-        return;
-      }
+//  if (downloadStarted && !done) {
+//    if (fileList == null) fileList = retrievePhotoList();
+//    if (fileList != null && currentFileIndex < fileList.size()) {
+//      JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
+//      fileName = fileObject.getString("name");
+//      if (DEBUG) println("fileName="+fileName);
+//      //  if (fileName.endsWith(".jpg") && (!fileName.startsWith(".trash"))) {
+//      //    valid = true;
+//      //  } else {
+//      //    currentFileIndex++;
+//      //    if (currentFileIndex >= fileList.size()) {
+//      //      return;
+//      //    }
+//      //  }
+//      //}
+//      String fileUrl = baseUrl + "/" + fileName;
+//      String outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+//      String outFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_2x1.jpg";
+//      if (!fileExists(outputFolderPath + File.separator + outFileName)) {
+//        try {
+//          saveImageFromUrl(fileUrl, outputFolderPath + File.separator +outFileName);
+//          if (DEBUG) println("Image downloaded and saved as " + outFileName);
+//        }
+//        catch (IOException e) {
+//          e.printStackTrace();
+//        }
+//      } else {
+//        if (DEBUG) println("Skipping existing file: " + outFileName);
+//      }
+//      if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
+//        currentImage = loadImage(fileUrl);
+//        if (DEBUG) println("loading "+fileUrl);
+//      } else {
+//        if (DEBUG) println("Skipping existing file: " + fileName);
+//        currentFileIndex++;
+//        currentImage = null;
+//        return;
+//      }
 
-      if (currentImage != null) {
-        float ar = (float)currentImage.width / (float) currentImage.height;
-        boolean update = false;
-        if (ar >= 2.0) {
-          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
-          update = true;
-        }
-        if (DEBUG) println("outputFileName="+outputFileName);
-        String outputPath = outputFolderPath + File.separator + outputFileName;
-        String cardOutputPath = outputFolderPath + File.separator + fileName.substring(0, fileName.lastIndexOf('.')) + "_c"+str(parallax)+"_2x1.jpg";
-        // save original image
-        if (DEBUG) println("not saved outputFilePath="+outputFolderPath + File.separator + fileName);
-        text("Not 3D Image", width/2, 2*height/3);
-        //currentImage.save(outputFolderPath + File.separator + fileName);
-        // modify parallax from infinity background
-        if (update) {
-          currentImage = updateParallax(currentImage, parallax);
-          // save parallax adjusted image
-          if (DEBUG) println("saved outputFilePath="+outputPath);
-          currentImage.save(outputPath);
-          //PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, printPxWidth, printPxHeight);
-          PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, int((((float)currentImage.height)*printAspectRatio)), currentImage.height);
-          card.save(cardOutputPath);
-        } else {
-          if (DEBUG) println("Skipping existing file: "+outputFileName);
-        }
-        currentFileIndex++;
-        fill(0, 0, 255);
-        text("Downloading " + str(currentFileIndex) + " of " + str(fileList.size()), width/2, 9*IGui.FONT_SIZE);
-      }
-    } else {
-      done = true;
-      if (DEBUG) println("Done Photo Transfer............");
-      downloadStarted = false;
-    }
-  }
+//      if (currentImage != null) {
+//        float ar = (float)currentImage.width / (float) currentImage.height;
+//        boolean update = false;
+//        if (ar >= 2.0) {
+//          outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax)+"_2x1.jpg";
+//          update = true;
+//        }
+//        if (DEBUG) println("outputFileName="+outputFileName);
+//        String outputPath = outputFolderPath + File.separator + outputFileName;
+//        String cardOutputPath = outputFolderPath + File.separator + fileName.substring(0, fileName.lastIndexOf('.')) + "_c"+str(parallax)+"_2x1.jpg";
+//        // save original image
+//        if (DEBUG) println("not saved outputFilePath="+outputFolderPath + File.separator + fileName);
+//        text("Not 3D Image", width/2, 2*height/3);
+//        //currentImage.save(outputFolderPath + File.separator + fileName);
+//        // modify parallax from infinity background
+//        if (update) {
+//          currentImage = updateParallax(currentImage, parallax);
+//          // save parallax adjusted image
+//          if (DEBUG) println("saved outputFilePath="+outputPath);
+//          currentImage.save(outputPath);
+//          //PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, printPxWidth, printPxHeight);
+//          PImage card = cropFor3DMaskPrint(currentImage, printAspectRatio, int((((float)currentImage.height)*printAspectRatio)), currentImage.height);
+//          card.save(cardOutputPath);
+//        } else {
+//          if (DEBUG) println("Skipping existing file: "+outputFileName);
+//        }
+//        currentFileIndex++;
+//        fill(0, 0, 255);
+//        text("Downloading " + str(currentFileIndex) + " of " + str(fileList.size()), width/2, 9*IGui.FONT_SIZE);
+//      }
+//    } else {
+//      done = true;
+//      if (DEBUG) println("Done Photo Transfer............");
+//      downloadStarted = false;
+//    }
+//  }
 
-  if (currentImage != null) {
-    float ar = (float) currentImage.width / (float) currentImage.height;
-    image(currentImage, 0, height/2, ar*(height/2), height/2);
-    //image(currentImage, 0, height-(float)width/ar, width , (float)width/ar);
-  }
+//  if (currentImage != null) {
+//    float ar = (float) currentImage.width / (float) currentImage.height;
+//    image(currentImage, 0, height/2, ar*(height/2), height/2);
+//    //image(currentImage, 0, height-(float)width/ar, width , (float)width/ar);
+//  }
 
-  if (started && done) {
-    fill(0);
-    textSize(IGui.FONT_SIZE);
-    if (outputFolderPath.length()> 20) {
-      text("Done Saving in Directory: " + outputFolderPath.substring(20), 20, height/3);
-      text("Last Filename: "+fileName, 20, height/3 + 2*IGui.FONT_SIZE);
-    }
-  }
+//  if (started && done) {
+//    fill(0);
+//    textSize(IGui.FONT_SIZE);
+//    if (outputFolderPath.length()> 20) {
+//      text("Done Saving in Directory: " + outputFolderPath.substring(20), 20, height/3);
+//      text("Last Filename: "+fileName, 20, height/3 + 2*IGui.FONT_SIZE);
+//    }
+//  }
 
-  if (foundUrl == null) {
-    showText("No HTTP Photo Server found", 3);
-  } else {
-    showText("Transfering Photos from http://"+foundUrl, 3);  // set full url
-  }
-}
+//  if (foundUrl == null) {
+//    showText("No HTTP Photo Server found", 3);
+//  } else {
+//    showText("Transfering Photos from http://"+foundUrl, 3);  // set full url
+//  }
+//}

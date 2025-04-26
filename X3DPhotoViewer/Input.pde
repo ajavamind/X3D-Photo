@@ -67,22 +67,26 @@ int keyUpdate() {
       stopSearch();
     }
     break;
-  case IGui.KEYCODE_B: // show first photo
-    currentFileIndex = 0;
-    first = true;
-    break;
   case IGui.KEYCODE_C:  // get list of photos available on the HTTP server
     if (gui.toggleStartTransferKey()) {
       startTransfer();
-      first = true;
+      //first = true;
     } else {
-      first = false;
+      //first = false;
       stopTransfer();
     }
     break;
+  case IGui.KEYCODE_B: // show first photo
+    currentFileIndex = 0;
+    loadedFileIndex = -1;
+    //first = true;
+    break;
   case IGui.KEYCODE_D: // show last photo
-    currentFileIndex = fileList.size()-1;
-    first = true;
+    if (fileList != null) {
+      currentFileIndex = fileList.size()-1;
+      loadedFileIndex = -1;
+      //first = true;
+    }
     break;
   case IGui.KEYCODE_E: // select save folder for photos
     selectSaveFolder();
@@ -98,19 +102,21 @@ int keyUpdate() {
     else gui.prefixDropDownList.hide();
     break;
   case IGui.KEYCODE_G:  // show next photo
-    currentFileIndex++;
-    if (currentFileIndex >= fileList.size()) {
-      currentFileIndex--;
-      first = true;
+
+    if (currentFileIndex < (fileList.size()-1)) {
+      currentFileIndex++;
+      loadedFileIndex = -1;
+      //first = true;
     }
-    done = false;
+    //done = false;
     break;
   case IGui.KEYCODE_H:// show previous photo
-    currentFileIndex--;
-    if (currentFileIndex < 0 || currentFileIndex >= fileList.size()) {
-      currentFileIndex = fileList.size() -1;
+
+    if (currentFileIndex  > 0) {
+      currentFileIndex--;
+      loadedFileIndex = -1;
     }
-    done = false;
+    //done = false;
     break;
   default:
     break;
