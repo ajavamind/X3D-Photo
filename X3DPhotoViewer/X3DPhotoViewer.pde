@@ -30,8 +30,8 @@ import java.util.List;
 import java.io.*;
 import java.net.*;
 
-static final boolean  DEBUG = false;
-//static final boolean  DEBUG = true;
+//static final boolean  DEBUG = false;
+static final boolean  DEBUG = true;
 String title="X3D Photo Transfer";
 String version = "1.11";
 String credits = "Andy Modla";
@@ -89,7 +89,9 @@ void setup() {
 
   openFileSystem();
 
+  // for debug only
   //writeConfiguration(configFile, "0.0.0.0");  // for debug only, resets saved server ip address to require a scan
+  writeConfiguration(configFile, "192.168.1.90");  // for debug only, resets saved server ip address to require a scan
 
   readConfiguration(configFile);  // read configuration file
 
@@ -161,21 +163,22 @@ void draw() {
 } // draw()
 
 void drawPhotoViewer() {
-  if (fileList != null && currentFileIndex < fileList.size()) {
+  if (fileList != null && currentFileIndex < fileList.size() && currentFileIndex >= 0) {
     JSONObject fileObject = fileList.getJSONObject(currentFileIndex);
     fileName = fileObject.getString("name");
     if (DEBUG) println("fileName="+fileName);
     String fileUrl = baseUrl + "/" + fileName;
     outputFileName = "";
     boolean filePresent = false;
-    if (parallax > 0) {
-      outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
-    } else {
-      outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + fileSuffix + fileType;
+    String sParallax = "";
+    if (parallax != 0 && filePrefix.equals(STEREO_PREFIX)) {
+      sParallax = "_p"+str(parallax);
     }
-    if (!fileExists(outputFolderPath + File.separator + outputFileName)) {
-    } else {
-      if (DEBUG) println("Skip write existing file: " + outputFileName);
+    outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + sParallax + fileSuffix + fileType;
+
+    if (fileExists(outputFolderPath + File.separator + outputFileName)) {
+      //} else {
+      if (DEBUG) println("existing file: " + outputFileName);
       filePresent = true;
     }
 
@@ -228,7 +231,7 @@ void drawPhotoViewer() {
   } else {
     if (fileList != null && fileList.size() > 0) {
       String fText = str(currentFileIndex+1) + " of " +fileList.size() + " " + outputFileName;
-      if (DEBUG) println("outputFileName="+outputFileName);
+      //if (DEBUG) println("outputFileName="+outputFileName);
       show3DText(fText, 2);
     }
   }

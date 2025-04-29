@@ -130,26 +130,25 @@ interface IGui {
 }
 
 // Drop Down List Input File Name Prefix
-String[] prefixNames = {"SV_", "IMG_", "Other"};
-static final int PREFIX_SV = 1;
-static final int PREFIX_IMG = 2;
-static final int PREFIX_OTHER = 4;
-int[] prefixValues = {PREFIX_SV, PREFIX_IMG, PREFIX_OTHER};
+String[] prefixNames = {"None", "SV_", "IMG_", "IMG_20250427"};
+static final int PREFIX_ANY = 1;
+static final int PREFIX_SV = 2;
+static final int PREFIX_IMG = 4;
+static final int PREFIX_DATE = 8;
+int[] prefixValues = {PREFIX_ANY, PREFIX_SV, PREFIX_IMG, PREFIX_DATE};
 static final int PREFIX_DEFAULT = PREFIX_SV;
 int prefixValue = PREFIX_DEFAULT;
 
 // Drop Down List Conversion Option items
-String[] itemNames = {"Raw", "_2x1", "Anaglyph", "Card", "_L  _R"};
+String[] itemNames = {"None", "_2x1", "_ana", "_card", "_L", "_R"};
 // , "Parallax", "IMG_"};
 static final int OPTION_NONE =  1;
 static final int OPTION_2x1 = 2;
 static final int OPTION_ANAGLYPH = 4;
 static final int OPTION_CARD = 8;
-static final int OPTION_L_R = 16;
-//static final int OPTION_PARALLAX = 32;
-//static final int OPTION_IMG = 64;
-int[] itemValues = {OPTION_NONE, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L_R};
-//, OPTION_PARALLAX, OPTION_IMG};
+static final int OPTION_L = 16;
+static final int OPTION_R = 32;
+int[] itemValues = {OPTION_NONE, OPTION_2x1, OPTION_ANAGLYPH, OPTION_CARD, OPTION_L, OPTION_R};
 static final int OPTION_DEFAULT = OPTION_2x1;
 int optionValue = OPTION_DEFAULT;
 
@@ -265,7 +264,7 @@ class Gui {
       refreshListKey = new MenuKey(base, KEYCODE_C, "Start", MEDIUM_FONT_SIZE, black);
       lastPhotoKey = new MenuKey(base, KEYCODE_D, "Last", MEDIUM_FONT_SIZE, black);
       saveFolderKey = new MenuKey(base, KEYCODE_E, "Folder", MEDIUM_FONT_SIZE, black);
-      optionDropDownKey = new MenuKey(base, KEYCODE_F, "Options", MEDIUM_FONT_SIZE, black);
+      optionDropDownKey = new MenuKey(base, KEYCODE_F, "Suffix", MEDIUM_FONT_SIZE, black);
       prefixDropDownKey = new MenuKey(base, KEYCODE_P, "Prefix", MEDIUM_FONT_SIZE, black);
       menuKey = new MenuKey[numKeys];
       menuKey[0] = resetServerKey;

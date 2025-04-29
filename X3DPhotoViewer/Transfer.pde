@@ -53,16 +53,24 @@ void photoTransferThread() {
 void setupTransferOptions() {
   int options = 0;
   options = gui.optionDropDownList.getItemValue();
-  if ((options & OPTION_2x1) != 0) {
-    fileSuffix = "_2x1";
-  } else if ((options & OPTION_NONE) != 0) {
+  if ((options & OPTION_NONE) != 0) {
     fileSuffix = "";
+  } else if ((options & OPTION_2x1) != 0) {
+    fileSuffix = "_2x1";
+  } else if ((options & OPTION_ANAGLYPH) != 0) {
+    fileSuffix = "_ana";
+  } else if ((options & OPTION_CARD) != 0) {
+    fileSuffix = "_card";
   }
   options = gui.prefixDropDownList.getItemValue();
-  if ((options & PREFIX_SV) != 0) {
+  if ((options & PREFIX_ANY) != 0) {
+    filePrefix = "";
+  } else if ((options & PREFIX_SV) != 0) {
     filePrefix = STEREO_PREFIX;
   } else if ((options & PREFIX_IMG) != 0) {
     filePrefix = MONO_PREFIX;
+  } else if ((options & PREFIX_DATE) != 0) {
+    filePrefix = prefixNames[2];
   }
   if (DEBUG) println("set options filePrefix="+filePrefix+ " fileSuffix="+fileSuffix);
 }
@@ -88,7 +96,7 @@ void photoTransfer() {
       if (DEBUG) println("Transfer fileName="+fileName+" prefix="+filePrefix+ " suffix="+fileSuffix);
 
       if ((!fileName.toLowerCase().startsWith(".trash")) && (fileName.toLowerCase().endsWith(fileType))) {
-        if (fileName.startsWith(filePrefix)) {
+        if (fileName.startsWith(filePrefix) || filePrefix.equals("") ) {
           String fileUrl = baseUrl + "/" + fileName;
           String sParallax = "";
           if (parallax != 0 && filePrefix.equals(STEREO_PREFIX)) {
@@ -101,11 +109,10 @@ void photoTransfer() {
             img = loadImage(fileUrl);
             if (DEBUG) println("loading stored image "+fileUrl);
             if (img != null) {
-              float ar = (float)img.width / (float) img.height;
               outputFileName = fileName.substring(0);
               boolean update = false;
               if (filePrefix.equals(STEREO_PREFIX)) {
-                outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_p"+str(parallax) + fileSuffix + fileType;
+                outputFileName = fileName.substring(0, fileName.lastIndexOf('.')) + sParallax + fileSuffix + fileType;
                 update = true;
               }
               String outputPath = outputFolderPath + File.separator + outputFileName;
